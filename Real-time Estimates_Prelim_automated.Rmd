@@ -9,9 +9,9 @@ output:
 ---
 
 ```{r, echo=FALSE}
-reddCount <- 324 
-countDate <- "August 8, 2023"
-updatedReddInfoDate <- "August 8, 2023"
+reddCount <- 347
+countDate <- "August 13, 2023"
+updatedReddInfoDate <- "August 13, 2023"
 #show_extra = TRUE
 ```
 
@@ -26,8 +26,8 @@ library(data.table)
 library(plyr)
 library(lubridate)
 
-#setwd("I:/Lisa/Redd Dewatering/Real-time Estimates")
-setwd("C:/Users/lelliott/OneDrive - DOI/Documents/Projects/Redd Dewatering/2023")
+setwd("~/GitHub/Fall_Flow_Redd_Dewatering")
+
 
 #this function will convert the character values (from xlsx format of numbers with commas) to numeric class values
 setClass("num.with.commas")
@@ -222,7 +222,7 @@ for(a in 1:(length(kesFlow)-1)){
   lines(kesFlowReal$Date , kesFlowReal[ ,  paste0("A", substr(names(kesFlow)[a + 1], 4,6), "cfs")], col = cols[a], lwd = 2)
 }
 lines(kesFlowReal$Date, kesFlowReal$KES_Flow, col = "black", lwd = 2)
-legend("bottom", inset = c(0, -0.12), legend=c(names(kesFlow)[2:length(kesFlow)], "Emerged", "Dewatered", "Remaining"),
+legend("bottom", inset = c(0, -0.42), legend=c(names(kesFlow)[2:length(kesFlow)], "Emerged", "Dewatered", "Remaining"),
        pch = c( rep(NA, length(kesFlow) - 1), 16, 16, 16),
        col=c(cols[1:(length(kesFlow)-1)], "light blue", "darkorange2",  "grey"), 
        lty= c(rep(1, length(kesFlow) - 1), NA, NA, NA), cex=0.8, xpd = TRUE, horiz = TRUE)  
