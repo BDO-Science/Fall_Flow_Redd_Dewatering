@@ -11,11 +11,11 @@ output:
 ```{r, echo=FALSE}
 reddCount <- 347
 countDate <- "August 13, 2023"
-updatedReddInfoDate <- "August 13, 2023"
+updatedReddInfoDate <- "August 22, 2023"
 #show_extra = TRUE
 ```
 
-This script constructs real-time winter-run redd dewatering estimates based on most recent data available from CDFW (`r updatedReddInfoDate`). Data are also available in the YYYY Winter-run Data file.xls online at [calfish.org](https://gcc02.safelinks.protection.outlook.com/?url=https%3A%2F%2Fwww.calfish.org%2FProgramsData%2FConservationandManagement%2FCentralValleyMonitoring%2FCDFWUpperSacRiverBasinSalmonidMonitoring.aspx&data=05%7C01%7Clelliott%40usbr.gov%7C689ebb9a6c8243b4f96c08da90f5c542%7C0693b5ba4b184d7b9341f32f400a5494%7C0%7C0%7C637981682646098788%7CUnknown%7CTWFpbGZsb3d8eyJWIjoiMC4wLjAwMDAiLCJQIjoiV2luMzIiLCJBTiI6Ik1haWwiLCJXVCI6Mn0%3D%7C3000%7C%7C%7C&sdata=A1eQkWPxbkXxnzEvc2K8%2FTmslZ8H8zvxdks3%2F78Yrvw%3D&reserved=0).
+This script constructs real-time winter-run redd dewatering estimates based on most recent data available from CDFW (`r updatedReddInfoDate`). Data are also available in the YYYY Winter-run Data file.xls online at [calfish.org](https://gcc02.safelinks.protection.outlook.com/?url=https%3A%2F%2Fwww.calfish.org%2FProgramsData%2FConservationandManagement%2FCentralValleyMonitoring%2FCDFWUpperSacRiverBasinSalmonidMonitoring.aspx&data=05%7C01%7Clelliott%40usbr.gov%7C689ebb9a6c8243b4f96c08da90f5c542%7C0693b5ba4b184d7b9341f32f400a5494%7C0%7C0%7C637981682646098788%7CUnknown%7CTWFpbGZsb3d8eyJWIjoiMC4wLjAwMDAiLCJQIjoiV2luMzIiLCJBTiI6Ik1haWwiLCJXVCI6Mn0%3D%7C3000%7C%7C%7C&sdata=A1eQkWPxbkXxnzEvc2K8%2FTmslZ8H8zvxdks3%2F78Yrvw%3D&reserved=0) but updated data may be available upon request from CDFW.
 
 
 Please note that all data are preliminary until data collection is finalized. Likewise, there are uncertainties with forecasts which may lead to changes in proposed operations. 
@@ -42,8 +42,8 @@ reddsAll <- redds
 #Read in KES flow data, converting flow to a numeric and date from character to date value
 kesFlow <- read.csv("kesFlow.csv")
 kesFlow <- read.csv("kesFlow.csv", colClasses=c(rep('character', length(kesFlow))))
-#kesFlow$Date <- as.Date(kesFlow$Date, "%m/%d/%Y")
-kesFlow$Date <- as.Date(kesFlow$Date, "%Y-%m-%d")
+kesFlow$Date <- as.Date(kesFlow$Date, "%m/%d/%Y")
+#kesFlow$Date <- as.Date(kesFlow$Date, "%Y-%m-%d")
 
 realFlow <- read.csv("realtimeKES.csv")
 realFlow$Date <- as.Date(realFlow$Date, "%m/%d/%Y")
@@ -52,7 +52,7 @@ actualDate <- max(realFlow$Date)
 #`r if(show_extra){
 #print("this will only print when show.text is TRUE")
 #str(redds)
-#str(kesFlow)
+str(kesFlow)
 #str(realFlow)}`
 
 ```
@@ -147,7 +147,7 @@ for(r in 1:nrow(redds)){ #loop over redds
 
 
 # Table
-**Table 1.** Average September and October Keswick (KES) Flow in cfs, total water volume of each alternative for August through October in TAF, estimated numbers of SRWC redds dewatered, and percent of population that would be lost under each of the proposed alternatives. KES Flow data uses actual flow-to-date as of `r max(realFlow$Date)` and proposed flows for the remainder of the incubation period. Redd dewatering is considered at the actual or estimated dewatering flow and with a 100 cfs buffer applied to the actual/estimated dewatering flow. Percentage of the population lost is based on the `r countDate` count of `r reddCount` Winter-run redds and updated redd counts may be available soon.  
+**Table 1.** Average September and October Keswick (KES) Flow in cfs, total water volume of each alternative for August through October in TAF, estimated numbers of SRWC redds dewatered, and percent of population that would be lost under each of the proposed alternatives. KES Flow data uses actual flow-to-date as of `r max(realFlow$Date)` and proposed flows for the remainder of the incubation period. Redd dewatering is considered at the actual or estimated dewatering flow and with a 100 cfs buffer applied to the actual/estimated dewatering flow. Percentage of the population lost is based on the `r countDate` count of `r reddCount` Winter-run redds and updated redd counts may be available soon. Alternatives 1a, 2a, 2b, and 3a have been dropped from consideration because they are based on outdated forecasts and have been improved upon.  
 ```{r, echo=FALSE, results= TRUE}
 Metric <- c("Avg Sept Flow (cfs)", "Avg Oct Flow (cfs)", "Total Volume (TAF)", "Redds dewatered", "Percent Lost (based on current count)", "Percent Lost (based on expansion of 0.7)", "Percent Lost (based on expansion of 0.3)", "Redds dewatered (w/ 100cfs buffer)", "Percent Lost (w/ 100cfs buffer)")
 table <- data.frame(Metric)
