@@ -13,6 +13,8 @@ reddCount <- 347
 countDate <- "August 13, 2023"
 updatedReddInfoDate <- "August 31, 2023"
 fallreddCount<- 1000
+
+scenarios <- c("Alt.1b", "Alt.2d", "Alt.3d", "Alt.3f")
 #show_extra = TRUE
 ```
 
@@ -38,8 +40,8 @@ setAs("character", "num.with.commas",
 
 #Read in redd data, converting flow to a numeric and date from character to date value
 redds <- read.csv("Redds.csv", colClasses=c('character', 'character', 'num.with.commas'))
-#redds$Estimated.Date.of.Emergence <- as.Date(redds$Estimated.Date.of.Emergence, "%m/%d/%Y")
-redds$Estimated.Date.of.Emergence <- as.Date(redds$Estimated.Date.of.Emergence,  "%Y-%m-%d")
+redds$Estimated.Date.of.Emergence <- as.Date(redds$Estimated.Date.of.Emergence, "%m/%d/%Y")
+#redds$Estimated.Date.of.Emergence <- as.Date(redds$Estimated.Date.of.Emergence,  "%Y-%m-%d")
 reddsAll <- redds
 
 #Read in KES flow data, converting flow to a numeric and date from character to date value
@@ -47,6 +49,10 @@ kesFlow <- read.csv("kesFlow.csv")
 kesFlow <- read.csv("kesFlow.csv", colClasses=c(rep('character', length(kesFlow))))
 kesFlow$Date <- as.Date(kesFlow$Date, "%m/%d/%Y")
 #kesFlow$Date <- as.Date(kesFlow$Date, "%Y-%m-%d")
+kesFlow <- kesFlow %>%
+  as_tibble %>%
+  select(Date, scenarios) %>%
+  as.data.frame()
 
 realFlow <- read.csv("realtimeKES.csv")
 realFlow$Date <- as.Date(realFlow$Date, "%m/%d/%Y")
@@ -105,7 +111,7 @@ octKesFlow <- subset (kesFlow, kesFlow$Date >= '2023-10-01')
 
 #transform kesFlowReal dataframe for model
 redd_model <- kesFlowReal %>% 
-  gather(key = Scenarios, value = Spawn_Flows, A.1bcfs, A.2ccfs, A.3dcfs, A.3fcfs) %>%
+  gather(key = Scenarios, value = Spawn_Flows, A.1bcfs, A.2dcfs, A.3dcfs, A.3fcfs) %>%
   select(Date, Scenarios, Spawn_Flows) %>% 
   mutate(Boards = if_else(Date < as.Date('2023-11-01'), 'out', 'in')) %>% 
   mutate(Spawn_Flows = as.numeric(Spawn_Flows))
@@ -203,23 +209,6 @@ for(r in 1:nrow(redds)){ #loop over redds
 Metric <- c("Avg Sept Flow (cfs)", "Avg Oct Flow (cfs)", "Total Volume (TAF)", "Winter-run Redds dewatered", "Winter-run Percent Lost (based on current count)", "Winter-run Percent Lost (based on expansion of 0.7)", "Winter-run Percent Lost (based on expansion of 0.3)", "Winter-run Redds Dewatered (w/ 250 cfs buffer)", "Winter-run Percent Lost (w/ 250 cfs buffer)")
 table <- data.frame(Metric)
 
-#table values
-avg_sept_flow <- round(mean(as.numeric(septKesFlow[, paste0("Alt", substr(names(kesFlow)[a + 1], 4,6))]), na.rm = TRUE), 0)
-
-avg_oct_flow <- round(mean(as.numeric(octKesFlow[, paste0("Alt", substr(names(kesFlow)[a + 1], 4,6))]), na.rm = TRUE), 0) 
-total_volume <- round((sum(as.numeric(kesFlow[, names(kesFlow)[a + 1]]))*1.983)/1000, 0)
-
-wr_dewatered <- sum(redds[ ,paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6))], na.rm = TRUE)
-wr_pct_lost <-  round((sum(redds[ ,  paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6))], na.rm = TRUE)/reddCount*100), 1)
-
-wr_pct_lost_70 <- round((sum(redds[ ,  paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6))], na.rm = TRUE)/(reddCount*1.7)*100), 1)
-
-wr_pct_lost_30 <- round((sum(redds[ ,  paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6))], na.rm = TRUE)/(reddCount*1.3)*100), 1)
-
-wr_dewatered_250 <- sum(redds[ ,  paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6), "Buffer")], na.rm = TRUE)
-
-wr_pct_lost_250 <- round((sum(redds[ ,  paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6), "Buffer")], na.rm = TRUE)/reddCount*100), 1)
-
 
 d <- rep(NA, length(kesFlow)-1)
 dflist = vector("list", length(kesFlow)-1) # creating an empty list
@@ -229,6 +218,24 @@ for(a in 1:(length(kesFlow)-1)){
  d[a] = paste0("Alt", substr(names(kesFlow)[a + 1], 4,6))
  dfnames[a] = paste0("Alt", substr(names(kesFlow)[a + 1], 4,6))
  names(dflist) = dfnames # naming the list 
+ 
+   #table values
+  avg_sept_flow <- round(mean(as.numeric(septKesFlow[, paste0("Alt", substr(names(kesFlow)[a + 1], 4,6))]), na.rm = TRUE), 0)
+  
+  avg_oct_flow <- round(mean(as.numeric(octKesFlow[, paste0("Alt", substr(names(kesFlow)[a + 1], 4,6))]), na.rm = TRUE), 0) 
+  total_volume <- round((sum(as.numeric(kesFlow[, names(kesFlow)[a + 1]]))*1.983)/1000, 0)
+  
+  wr_dewatered <- sum(redds[ ,paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6))], na.rm = TRUE)
+  wr_pct_lost <-  round((sum(redds[ ,  paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6))], na.rm = TRUE)/reddCount*100), 1)
+  
+  wr_pct_lost_70 <- round((sum(redds[ ,  paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6))], na.rm = TRUE)/(reddCount*1.7)*100), 1)
+  
+  wr_pct_lost_30 <- round((sum(redds[ ,  paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6))], na.rm = TRUE)/(reddCount*1.3)*100), 1)
+  
+  wr_dewatered_250 <- sum(redds[ ,  paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6), "Buffer")], na.rm = TRUE)
+  
+  wr_pct_lost_250 <- round((sum(redds[ ,  paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6), "Buffer")], na.rm = TRUE)/reddCount*100), 1)
+ 
  dflist[[a]] <- as.character(c(avg_sept_flow, avg_oct_flow, total_volume, 
                                wr_dewatered, wr_pct_lost, wr_pct_lost_70, wr_pct_lost_30,
                                 wr_dewatered_250, wr_pct_lost_250))
@@ -262,14 +269,16 @@ for(r in 1:nrow(reddsTable)){
   }
 }
 reddsTable <- reddsTable %>% rename('Date' = 'Estimated.Date.of.Emergence', 'Flow' = 'ACTUAL.or.ESTIMATED..DEWATER.FLOW') 
-flows <- kesFlowReal %>% rename('Alt-1b' = 'A.1bcfs', 'Alt-2c' = 'A.2ccfs', 
+flows <- kesFlowReal %>% rename('Alt-1b' = 'A.1bcfs', 'Alt-2d' = 'A.2dcfs', 
                                 'Alt-3d' = 'A.3dcfs', 'Alt-3f' = 'A.3fcfs') %>%
-  gather(key = 'Alternates', value = 'Flow', 'Alt-1b', 'Alt-2c', 'Alt-3d', 'Alt-3f') %>% 
-  mutate(Flow = as.numeric(Flow))
+  gather(key = 'Alternates', value = 'Flow', 'Alt-1b', 'Alt-2d', 'Alt-3d', 'Alt-3f') %>% 
+  mutate(Flow = as.numeric(Flow)) %>%
+  filter(Date > "2023-08-31")
+
 ggplot() + geom_line(flows, mapping = aes(x = Date, y = Flow, color = Alternates), size = 0.75) + 
-  geom_label_repel(reddsTable, mapping = aes(x = Date, y = Flow, 
+  geom_label(reddsTable, mapping = aes(x = Date, y = Flow, 
                                              label = Count, fill = cols), min.segment.length = 4,
-                   postion = 'dodge', size = 2.5, label.padding = unit(0.25, 'lines'),label.r = unit(.35, 'lines'), fontface = 'bold', alpha = 0.75) + facet_wrap(~Alternates) +
+                   postion = 'dodge', size = 2.5, label.padding = unit(0.25, 'lines'),label.r = unit(.35, 'lines'), fontface = 'bold', alpha = 0.75) + #facet_wrap(~Alternates) +
   ylim(ymin, ymax) +
   xlim(min(flows$Date), (max(reddsTable$Date) + 5)) +
   labs(x = 'Date', y = 'Flow (cfs)', fill = 'Redd Status') +
