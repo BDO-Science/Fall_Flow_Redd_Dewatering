@@ -11,7 +11,7 @@ output:
 ```{r, echo=FALSE}
 reddCount <- 347
 countDate <- "August 13, 2023"
-updatedReddInfoDate <- "August 13, 2023"
+updatedReddInfoDate <- "August 31, 2023"
 #show_extra = TRUE
 ```
 
@@ -38,7 +38,8 @@ setAs("character", "num.with.commas",
 
 #Read in redd data, converting flow to a numeric and date from character to date value
 redds <- read.csv("Redds.csv", colClasses=c('character', 'character', 'num.with.commas'))
-redds$Estimated.Date.of.Emergence <- as.Date(redds$Estimated.Date.of.Emergence, "%m/%d/%Y")
+#redds$Estimated.Date.of.Emergence <- as.Date(redds$Estimated.Date.of.Emergence, "%m/%d/%Y")
+redds$Estimated.Date.of.Emergence <- as.Date(redds$Estimated.Date.of.Emergence,  "%Y-%m-%d")
 reddsAll <- redds
 
 #Read in KES flow data, converting flow to a numeric and date from character to date value
