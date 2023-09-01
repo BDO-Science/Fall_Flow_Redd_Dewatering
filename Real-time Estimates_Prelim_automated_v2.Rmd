@@ -262,10 +262,10 @@ for(r in 1:nrow(reddsTable)){
   }
 }
 reddsTable <- reddsTable %>% rename('Date' = 'Estimated.Date.of.Emergence', 'Flow' = 'ACTUAL.or.ESTIMATED..DEWATER.FLOW') 
-flows <- kesFlow %>% 
-  gather(key = 'Alternates', value = 'Flow', 'Alt.1b', 'Alt.2c', 'Alt.3d', 'Alt.3f') %>% 
-  mutate(Flow = as.numeric(Flow)) %>%
-  filter(Date > "2023-08-31")
+flows <- kesFlowReal %>% rename('Alt-1b' = 'A.1bcfs', 'Alt-2c' = 'A.2ccfs', 
+                                'Alt-3d' = 'A.3dcfs', 'Alt-3f' = 'A.3fcfs') %>%
+  gather(key = 'Alternates', value = 'Flow', 'Alt-1b', 'Alt-2c', 'Alt-3d', 'Alt-3f') %>% 
+  mutate(Flow = as.numeric(Flow))
 ggplot() + geom_line(flows, mapping = aes(x = Date, y = Flow, color = Alternates), size = 0.75) + 
   geom_label_repel(reddsTable, mapping = aes(x = Date, y = Flow, 
                                              label = Count, fill = cols), min.segment.length = 4,
