@@ -74,7 +74,7 @@ fall_model <- readRDS('fall_model.rds')
 
 ```
 
-```{r}
+```{r, echo = FALSE}
 library(rvest)
 library(dplyr)
 library(lubridate)
@@ -144,10 +144,10 @@ for(a in 1:(length(kesFlow)-1)){
 for(a in 1:(length(kesFlow)-1)){
   for(r in 1: nrow(kesFlowReal)){
     if(is.na(kesFlowReal$KES[r])){
-      kesFlowReal[r, paste0("A", substr(names(kesFlow)[a + 1], 4,6), "cfs")] <- kesFlowReal[r, paste0("Alt", substr(names(kesFlow)[a + 1], 4,6))]
+      kesFlowReal[r, paste0("A", substr(names(kesFlow)[a + 1], 4,6), "cfs")] <- as.numeric(kesFlowReal[r, paste0("Alt", substr(names(kesFlow)[a + 1], 4,6))])
       kesFlowReal[r, paste0("A", substr(names(kesFlow)[a + 1], 4,6), "taf")] <- (as.numeric(kesFlowReal[r, paste0("Alt", substr(names(kesFlow)[a + 1], 4,6))])*1.983)/1000
     } else{
-      kesFlowReal[r, paste0("A", substr(names(kesFlow)[a + 1], 4,6), "cfs")] <- kesFlowReal$KES[r]
+      kesFlowReal[r, paste0("A", substr(names(kesFlow)[a + 1], 4,6), "cfs")] <- as.numeric(kesFlowReal$KES[r])
       kesFlowReal[r, paste0("A", substr(names(kesFlow)[a + 1], 4,6), "taf")] <- (as.numeric(kesFlowReal$KES[r])*1.983)/1000
     }
   }
