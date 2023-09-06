@@ -74,13 +74,13 @@ fall_model <- readRDS('fall_model.rds')
 
 ```
 
-```{r, echo = FALSE}
+```{r, echo = FALSE, include = FALSE}
 library(rvest)
 library(dplyr)
 library(lubridate)
 
 #KWK daily flows url.  This url will have to be updated every year.
-kwk_webpage <- read_html('https://www.cbr.washington.edu/sacramento/tmp/riverdaily_1693937007_339.html')
+kwk_webpage <- read_html('https://www.cbr.washington.edu/sacramento/tmp/riverdaily_1694026523_22.html')
 
 #list all table objects on webpage and print tbls to look for the proper table
 kwk_tbls <- html_nodes(kwk_webpage, 'table')
@@ -327,13 +327,17 @@ for(r in 1:nrow(reddsTable)){
   }
 }
 reddsTable <- reddsTable %>% rename('Date' = 'Estimated.Date.of.Emergence', 'Flow' = 'ACTUAL.or.ESTIMATED..DEWATER.FLOW') 
-flows <- kesFlowReal %>% rename('Alt-1b' = 'A.1bcfs', 'Alt-3c' = 'A.3ccfs', 
-                                'Alt-3d' = 'A.3dcfs', 'Alt-3f' = 'A.3fcfs', 'Alt-3g' = 'A.3gcfs') %>%
-  gather(key = 'Alternates', value = 'Flow', 'Alt-1b', 'Alt-3c', 'Alt-3d', 'Alt-3f', 'Alt-3g') %>% 
+flows <- kesFlowReal %>% rename('1b' = 'A.1bcfs', '3c' = 'A.3ccfs', 
+                                '3d' = 'A.3dcfs', '3f' = 'A.3fcfs', '3g' = 'A.3gcfs') %>%
+  gather(key = 'Alts', value = 'Flow', '1b', '3c', '3d', '3f', '3g') %>% 
   mutate(Flow = as.numeric(Flow)) %>%
   filter(Date > "2023-08-31")
+todays_date <- as.Date(format(Sys.Date(), '%Y-%m-%d'))
 
-ggplot() + geom_line(flows, mapping = aes(x = Date, y = Flow, color = Alternates), size = 0.75) + 
+ggplot() + geom_line(flows, mapping = aes(x = Date, y = Flow, color = Alts), size = 0.75) +
+  geom_line(kwk_flows, mapping = aes(x = Date, y = as.numeric(KWK)), size = 0.75) +
+  geom_line(kes_flows, mapping = aes(x = Date, y = as.numeric(KES)), size = 0.75, color = "navy") + 
+  geom_vline(xintercept = todays_date, linetype = 3) +
   geom_label(reddsTable, mapping = aes(x = Date, y = Flow, 
                                              label = Count, fill = cols), min.segment.length = 4,
                    postion = 'dodge', size = 2.5, label.padding = unit(0.25, 'lines'),label.r = unit(.35, 'lines'), fontface = 'bold', alpha = 0.75) + #facet_wrap(~Alternates) +
@@ -357,7 +361,7 @@ ggplot() + geom_line(flows, mapping = aes(x = Date, y = Flow, color = Alternates
 
 ```
 
-**Figure 1.** Actual or estimated emergence dates of SRWC redds and actual or estimated dewatering flow for the September-October estimated redd emergence dates as compared to Keswick flow (in cfs) of proposed management alternatives. Points represent emerged, dewatered, or remaining redds. Numbers inside of points indicate how many redds share that estimated emergence date and actual/estimated dewatering flow. Points that fall above/to the right of a flow alternative line are expected to be dewatered given that management alternative is followed. Points that fall below/to the left of/on a flow alternative line are not expected to be dewatered, given that management alternative is followed.
+**Figure 1.** Actual or estimated emergence dates of SRWC redds and actual or estimated dewatering flow for the September-October estimated redd emergence dates as compared to Keswick flow (in cfs) of proposed management alternatives. Points represent emerged, dewatered, or remaining redds. Numbers inside of points indicate how many redds share that estimated emergence date and actual/estimated dewatering flow. Points that fall above/to the right of a flow alternative line are expected to be dewatered given that management alternative is followed. Points that fall below/to the left of/on a flow alternative line are not expected to be dewatered, given that management alternative is followed. Black line equals KWK gauge flow, navy blue line equals KES flow, and dotted vertical gray line equals today's date.
 
 
 #References
