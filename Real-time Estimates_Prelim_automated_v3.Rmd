@@ -11,7 +11,7 @@ output:
 ```{r, echo=FALSE}
 reddCount <- 347
 countDate <- "August 13, 2023"
-updatedReddInfoDate <- "August 31, 2023"
+updatedReddInfoDate <- "September 6, 2023"
 fallreddCount<- 1000
 
 scenarios <- c("Alt.1b", "Alt.3c", "Alt.3d", "Alt.3f", "Alt.3g")
@@ -161,7 +161,7 @@ octTAF <- subset(kesFlowReal, months(kesFlowReal$Date) == "October")
 ```{r, echo = FALSE}
 # September Flow Average
 septKesFlow <- subset (kesFlow, kesFlow$Date < '2023-10-01' & kesFlow$Date >= '2023-9-01')
-octKesFlow <- subset (kesFlow, kesFlow$Date >= '2023-10-01')
+octKesFlow <- subset (kesFlow, kesFlow$Date >= '2023-10-01' & kesFlow$Date < '2023-11-01')
 ```
 
 ```{r, echo = FALSE, message=FALSE}
@@ -200,9 +200,13 @@ table2 <- table2 %>% slice(-1)
 ```
 
 # Current Winter-run Chinook Salmon Redd Count
-As of `r countDate`, the unexpanded redd count is **`r reddCount`** Winter-run redds.  There is no real time data on Fall-run redd counts and instead that data is predicted based on estimated dewatering percentages from USFWS (2006). It is important to note that until data collection is completed for the year these are the **minimum** number of possible redds.  The Winter-run number will always expand upon final analysis but gives an in-season guard rail of the minimum number of redds this year.  Fall-run predictions may expand or contract depending on updates from real time operations. From 2018-2021, female expansion has ranged from 0.31 to 1.31 with a 0.7 average, thus we may expect the final number of Winter-run redds to be closer to `r round(reddCount*1.7, 0)` redds using average expansion on data this year, and using this value, `r 0.01*round(reddCount*1.7, 0)` redds dewatered would be at the 1% population loss.
+As of `r countDate`, the unexpanded redd count is **`r reddCount`** Winter-run redds.   It is important to note that until data collection is completed for the year these are the **minimum** number of possible redds.  The Winter-run number will always expand upon final analysis but gives an in-season guard rail of the minimum number of redds this year. From 2018-2021, female expansion has ranged from 0.31 to 1.31 with a 0.7 average, thus we may expect the final number of Winter-run redds to be closer to `r round(reddCount*1.7, 0)` redds using average expansion on data this year, and using this value, `r 0.01*round(reddCount*1.7, 0)` redds dewatered would be at the 1% population loss.
 
-As of `r updatedReddInfoDate`, **`r nrow(subset(reddsAll, reddsAll$Status == "EMERGED")) `** Winter-run redds have **emerged** and **`r nrow(subset(reddsAll, reddsAll$Status == "DEWATERED"))`** have been **dewatered**. This leaves **`r nrow(subset(reddsAll, reddsAll$Status == "OK"))`** shallow water redds of concern.  Depending on real-time flow information and scenario, between **`r min(summary[2:4]) `** and **`r max(summary[2:4])`%** Fall-run redds are estimated to be dewatered.
+##Chinook Salmon Dewatered Redd Estimates
+
+As of `r updatedReddInfoDate`, **`r nrow(subset(reddsAll, reddsAll$Status == "EMERGED")) `** Winter-run redds have **emerged** and **`r nrow(subset(reddsAll, reddsAll$Status == "DEWATERED"))`** have been **dewatered**. This leaves **`r nrow(subset(reddsAll, reddsAll$Status == "OK"))`** shallow water redds of concern.  
+
+There is no real time data on fall-run redd counts. Estimates are predicted based estimated dewatering percentages from USFWS (2006) and spring-run and fall-run spawn timing based on fresh female carcasses encountered by week, 2003 through 2022. Estimated emergence dates based on river water temperatures during fall-run period at CCR gauge in 2011 that closely mimics 2023 summer water temperatures. Fall-run dewatered redd estimates range from **`r min(summary[2]) `** to **`r max(summary[2])`%**.
 
 
 
@@ -361,5 +365,5 @@ ggplot() + geom_line(flows, mapping = aes(x = Date, y = Flow, color = Alts), siz
 
 
 #References
-Gard, Mark. 2006. Relationships between flow fluctuations and redd dewatering and juvenile stranding for Chinnok Salmon and Steelhead in the Sacramento River between Kesewick Dam and Battle Creek. 94 pages.
+Gard, Mark. 2006. Relationships between flow fluctuations and redd dewatering and juvenile stranding for Chinook Salmon and Steelhead in the Sacramento River between Kesewick Dam and Battle Creek. 94 pages.
 
