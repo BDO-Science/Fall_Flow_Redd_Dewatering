@@ -8,13 +8,18 @@ output:
   pdf_document: default
 ---
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, include = FALSE}
 reddCount <- 347
 countDate <- "August 13, 2023"
 updatedReddInfoDate <- "September 6, 2023"
 fallreddCount<- 1000
 
 scenarios <- c("Alt.1b", "Alt.3c", "Alt.3d", "Alt.3f", "Alt.3g")
+
+#KWK daily flows url.  This url will have to be updated.
+library(rvest)
+kwk_webpage <- read_html('https://www.cbr.washington.edu/sacramento/tmp/riverdaily_1694103865_328.html')
+kes_webpage <- read_html('https://www.cbr.washington.edu/sacramento/tmp/riverdaily_1694103884_126.html')
 #show_extra = TRUE
 ```
 
@@ -79,8 +84,6 @@ library(rvest)
 library(dplyr)
 library(lubridate)
 
-#KWK daily flows url.  This url will have to be updated every year.
-kwk_webpage <- read_html('https://www.cbr.washington.edu/sacramento/tmp/riverdaily_1694026523_22.html')
 
 #list all table objects on webpage and print tbls to look for the proper table
 kwk_tbls <- html_nodes(kwk_webpage, 'table')
@@ -102,7 +105,7 @@ kwk_flows <- kwk_flows %>%
 
 
 
-kes_webpage <- read_html('https://www.cbr.washington.edu/sacramento/tmp/riverdaily_1693953038_980.html')
+
 
 #list all table objects on webpage and print tbls to look for the proper table
 kes_tbls <- html_nodes(kes_webpage, 'table')
@@ -113,7 +116,9 @@ kes_flows <- kes_webpage %>% html_nodes("table") %>% .[6] %>% html_table(fill = 
 
 #convert to a dataframe and set the first row as the column headings
 kes_flows <- as.data.frame(kes_flows)
-#colnames(kes_flows) <- kes_flows[1, ]
+colnames(kes_flows) <- kes_flows[1, ]
+kes_flows <- kes_flows %>%
+  select(Project, contains("Date"), contains("Outflow"))
 colnames(kes_flows) <- c("Project", "Date", "KES")
 kes_flows <- kes_flows[-1,]
 kes_flows$Date <- as.Date(kes_flows$Date, "%Y-%m-%d")
@@ -202,7 +207,7 @@ table2 <- table2 %>% slice(-1)
 # Current Winter-run Chinook Salmon Redd Count
 As of `r countDate`, the unexpanded redd count is **`r reddCount`** Winter-run redds.   It is important to note that until data collection is completed for the year these are the **minimum** number of possible redds.  The Winter-run number will always expand upon final analysis but gives an in-season guard rail of the minimum number of redds this year. From 2018-2021, female expansion has ranged from 0.31 to 1.31 with a 0.7 average, thus we may expect the final number of Winter-run redds to be closer to `r round(reddCount*1.7, 0)` redds using average expansion on data this year, and using this value, `r 0.01*round(reddCount*1.7, 0)` redds dewatered would be at the 1% population loss.
 
-##Chinook Salmon Dewatered Redd Estimates
+# Chinook Salmon Dewatered Redd Estimates
 
 As of `r updatedReddInfoDate`, **`r nrow(subset(reddsAll, reddsAll$Status == "EMERGED")) `** Winter-run redds have **emerged** and **`r nrow(subset(reddsAll, reddsAll$Status == "DEWATERED"))`** have been **dewatered**. This leaves **`r nrow(subset(reddsAll, reddsAll$Status == "OK"))`** shallow water redds of concern.  
 
@@ -260,11 +265,11 @@ for(r in 1:nrow(redds)){ #loop over redds
 
 
 # Table
-**Table 1.** Average September and October Keswick (KES) Flow in cfs, total water volume of each alternative for August through October in TAF, estimated numbers of SRWC redds dewatered, and percent of population that would be lost under each of the proposed alternatives. KES Flow data uses actual flow-to-date as of `r max(realFlow$Date)` and proposed flows for the remainder of the incubation period. Redd dewatering is considered at the actual or estimated dewatering flow and with a 250 cfs buffer applied to the actual/estimated dewatering flow. Percentage of the population lost is based on the `r countDate` count of `r reddCount` Winter-run redds and updated redd counts may be available soon. See Scenario Descriptions file for additional information on each scenario. 
+**Table 1.** Average September and October Keswick (KES) Flow in cfs, total water volume of each alternative for August through October and September through February in TAF, estimated numbers of SRWC redds dewatered, and percent of population that would be lost under each of the proposed alternatives. KES Flow data uses actual flow-to-date as of `r max(realFlow$Date)` and proposed flows for the remainder of the incubation period. Redd dewatering is considered at the actual or estimated dewatering flow and with a 250 cfs buffer applied to the actual/estimated dewatering flow. Percentage of the population lost is based on the `r countDate` count of `r reddCount` Winter-run redds and updated redd counts may be available soon. See Scenario Descriptions file for additional information on each scenario. 
 
 
 ```{r, echo=FALSE, results= TRUE}
-Metric <- c("Avg Sept Flow (cfs)", "Avg Oct Flow (cfs)", "Total Volume (TAF)", "Winter-run Redds dewatered", "Winter-run Percent Lost (based on current count)", "Winter-run Percent Lost (based on expansion of 0.7)", "Winter-run Percent Lost (based on expansion of 0.3)", "Winter-run Redds Dewatered (w/ 250 cfs buffer)", "Winter-run Percent Lost (w/ 250 cfs buffer)")
+Metric <- c("Avg Sept Flow (cfs)", "Avg Oct Flow (cfs)", "Sept-Feb Total Volume (TAF)", "Aug-Oct Total Volume (TAF)", "Winter-run Redds dewatered", "Winter-run Percent Lost (based on current count)", "Winter-run Percent Lost (based on expansion of 0.7)", "Winter-run Percent Lost (based on expansion of 0.3)", "Winter-run Redds Dewatered (w/ 250 cfs buffer)", "Winter-run Percent Lost (w/ 250 cfs buffer)")
 table <- data.frame(Metric)
 
 
@@ -281,7 +286,8 @@ for(a in 1:(length(kesFlow)-1)){
   avg_sept_flow <- round(mean(as.numeric(septKesFlow[, paste0("Alt", substr(names(kesFlow)[a + 1], 4,6))]), na.rm = TRUE), 0)
   
   avg_oct_flow <- round(mean(as.numeric(octKesFlow[, paste0("Alt", substr(names(kesFlow)[a + 1], 4,6))]), na.rm = TRUE), 0) 
-  total_volume <- round((sum(as.numeric(kesFlow[, names(kesFlow)[a + 1]]))*1.983)/1000, 0)
+  total_volume_sf <- round((sum(as.numeric(kesFlow[kesFlow$Date >= "2023-09-01" & kesFlow$Date < "2024-02-01" , names(kesFlow)[a + 1]]))*1.983)/1000, 0)
+  total_volume_ao <- round((sum(as.numeric(kesFlow[kesFlow$Date >= "2023-08-01" & kesFlow$Date < "2023-11-01" , names(kesFlow)[a + 1]]))*1.983)/1000, 0)
   
   wr_dewatered <- sum(redds[ ,paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6))], na.rm = TRUE)
   wr_pct_lost <-  round((sum(redds[ ,  paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6))], na.rm = TRUE)/reddCount*100), 1)
@@ -294,7 +300,7 @@ for(a in 1:(length(kesFlow)-1)){
   
   wr_pct_lost_250 <- round((sum(redds[ ,  paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6), "Buffer")], na.rm = TRUE)/reddCount*100), 1)
  
- dflist[[a]] <- as.character(c(avg_sept_flow, avg_oct_flow, total_volume, 
+ dflist[[a]] <- as.character(c(avg_sept_flow, avg_oct_flow, total_volume_ao, total_volume_sf, 
                                wr_dewatered, wr_pct_lost, wr_pct_lost_70, wr_pct_lost_30,
                                 wr_dewatered_250, wr_pct_lost_250))
 
@@ -361,7 +367,7 @@ ggplot() + geom_line(flows, mapping = aes(x = Date, y = Flow, color = Alts), siz
 
 ```
 
-**Figure 1.** Actual or estimated emergence dates of SRWC redds and actual or estimated dewatering flow for the September-October estimated redd emergence dates as compared to Keswick flow (in cfs) of proposed management alternatives. Points represent emerged, dewatered, or remaining redds. Numbers inside of points indicate how many redds share that estimated emergence date and actual/estimated dewatering flow. Points that fall above/to the right of a flow alternative line are expected to be dewatered given that management alternative is followed. Points that fall below/to the left of/on a flow alternative line are not expected to be dewatered, given that management alternative is followed. Black line equals KWK gauge flow, navy blue line equals KES flow, and dotted vertical gray line equals today's date.
+**Figure 1.** Actual or estimated emergence dates of SRWC redds and actual or estimated dewatering flow for the September-October estimated redd emergence dates as compared to Keswick flow (in cfs) of proposed management alternatives. Points represent emerged, dewatered, or remaining redds. Numbers inside of points indicate how many redds share that estimated emergence date and actual/estimated dewatering flow. Points that fall above/to the right of a flow alternative line are expected to be dewatered given that management alternative is followed. Points that fall below/to the left of/on a flow alternative line are not expected to be dewatered, given that management alternative is followed. Black line equals KWK gauge flow and navy blue line equals KES flow (from [SacPas](https://www.cbr.washington.edu/sacramento/data/query_river_table.html)). Dotted vertical gray line equals today's date.
 
 
 #References
