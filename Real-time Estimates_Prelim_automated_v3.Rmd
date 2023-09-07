@@ -18,8 +18,8 @@ scenarios <- c("Alt.1b", "Alt.3c", "Alt.3d", "Alt.3f", "Alt.3g")
 
 #KWK daily flows url.  This url will have to be updated.
 library(rvest)
-kwk_webpage <- read_html('https://www.cbr.washington.edu/sacramento/tmp/riverdaily_1694103865_328.html')
-kes_webpage <- read_html('https://www.cbr.washington.edu/sacramento/tmp/riverdaily_1694103884_126.html')
+kwk_webpage <- read_html('https://cdec.water.ca.gov/dynamicapp/QueryDaily?s=KWK&d')
+kes_webpage <- read_html('https://cdec.water.ca.gov/dynamicapp/QueryDaily?s=KES&d')
 #show_extra = TRUE
 ```
 
@@ -59,6 +59,12 @@ kesFlow <- kesFlow %>%
   select(Date, scenarios) %>%
   as.data.frame()
 
+#Read in KES and KWK flow tables for webscraping
+kwk_flows <- read_csv("RT_Flows/kwk_flows.csv", 
+                      col_types = cols(Date = col_date(format = "%Y-%m-%d")))
+kes_flows <- read_csv("RT_Flows/kes_flows.csv", 
+                      col_types = cols(Date = col_date(format = "%Y-%m-%d")))
+
 realFlow <- read.csv("realtimeKES.csv")
 realFlow$Date <- as.Date(realFlow$Date, "%m/%d/%Y")
 actualDate <- max(realFlow$Date)
@@ -80,53 +86,44 @@ fall_model <- readRDS('fall_model.rds')
 ```
 
 ```{r, echo = FALSE, include = FALSE}
+#pulling in newest real-time flow data to append to existing RT flow dataframes
+
 library(rvest)
 library(dplyr)
 library(lubridate)
 
+#create a cutoff date for later filtering
+cutoff_date <- as.Date(max(kwk_flows$Date))
 
-#list all table objects on webpage and print tbls to look for the proper table
-kwk_tbls <- html_nodes(kwk_webpage, 'table')
-kwk_tbls
+#select table for kwk and convert to dataframe
+kwk_temp <- kwk_webpage %>% html_nodes("table") %>% .[1] %>% html_table(fill = TRUE)
+kwk_temp <- as.data.frame(kwk_temp)
 
-#the proper table appears to be 6th object on the tbls list so input that into the code
-kwk_flows <- kwk_webpage %>% html_nodes("table") %>% .[6] %>% html_table(fill = TRUE)
+#rename and select kwk columns of interest, convert relavent parameters, and filter for newest data
+kwk_temp <- kwk_temp %>% select(Date = 1, KWK = 2) %>% 
+  mutate(Date = mdy(Date)) %>%
+           filter(Date > cutoff_date) %>%
+  mutate(KWK = as.numeric(gsub(",", "", KWK))) %>% na.omit()
 
-#convert to a dataframe and set the first row as the column headings
-kwk_flows <- as.data.frame(kwk_flows)
-#colnames(kwk_flows) <- kwk_flows[1, ]
-colnames(kwk_flows) <- c("Project", "Date", "KWK")
-kwk_flows <- kwk_flows[-1,]
-kwk_flows$Date <- as.Date(kwk_flows$Date, "%Y-%m-%d")
+#append to kwk_flows
+kwk_flows <- rbind(kwk_flows, kwk_temp)
 
-kwk_flows <- kwk_flows %>%
-  select(Date, KWK) %>%
-  filter(Date >= as.Date("2023-08-01", "%Y-%m-%d"))
+#select table for kes and convert to dataframe
+kes_temp <- kes_webpage %>% html_nodes("table") %>% .[1] %>% html_table(fill = TRUE)
+kes_temp <- as.data.frame(kes_temp)
 
+#rename and select kes columns of interest, convert relavent parameters, and filter for newest data
+kes_temp <- kes_temp %>% select(Date = 1, KES = 8) %>%
+  mutate(Date = mdy(Date)) %>%
+  filter(Date > cutoff_date) %>%
+  mutate(KES = as.numeric(gsub(",", "", KES))) %>% na.omit()
 
+#append to kes_flows
+kes_flows <- rbind(kes_flows, kes_temp)
 
-
-
-#list all table objects on webpage and print tbls to look for the proper table
-kes_tbls <- html_nodes(kes_webpage, 'table')
-kes_tbls
-
-#the proper table appears to be 6th object on the tbls list so input that into the code
-kes_flows <- kes_webpage %>% html_nodes("table") %>% .[6] %>% html_table(fill = TRUE)
-
-#convert to a dataframe and set the first row as the column headings
-kes_flows <- as.data.frame(kes_flows)
-colnames(kes_flows) <- kes_flows[1, ]
-kes_flows <- kes_flows %>%
-  select(Project, contains("Date"), contains("Outflow"))
-colnames(kes_flows) <- c("Project", "Date", "KES")
-kes_flows <- kes_flows[-1,]
-kes_flows$Date <- as.Date(kes_flows$Date, "%Y-%m-%d")
-
-kes_flows <- kes_flows %>%
-  select(Date, KES) %>%
-  filter(Date >= as.Date("2023-08-01", "%Y-%m-%d"))
-
+#overwrite flow data for future processing
+write.csv(kwk_flows, file = 'RT_flows/kwk_flows.csv', row.names = FALSE)
+write.csv(kes_flows, file = 'RT_flows/kes_flows.csv', row.names = FALSE)
 
 
 #import actual Keswick flows from USGS
@@ -320,7 +317,7 @@ reddsTable <- setDT(reddsDat)[,list(Count=.N), names(reddsDat)]
 ymin <- round_any(min(reddsTable$ACTUAL.or.ESTIMATED..DEWATER.FLOW), 1000, f = floor)
 #ymax <- round_any(max(reddsTable$ACTUAL.or.ESTIMATED..DEWATER.FLOW), 250, f = ceiling)
 ymax <- round_any(max(realFlow$KES_Flow), 250, f = ceiling)
-todays_date <- as.Date(format(max(kwk_flows$Date), '%Y-%m-%d'))
+todays_date <- as.Date(max(kwk_flows$Date))
 mid <- as.Date('2023-09-01') + floor((todays_date - as.Date('2023-09-01'))/2)
 for(r in 1:nrow(reddsTable)){
   if(reddsTable$Status[r] == "EMERGED"){
@@ -337,8 +334,7 @@ reddsTable <- reddsTable %>% rename('Date' = 'Estimated.Date.of.Emergence', 'Flo
 
 flows <- kesFlowReal %>% 
   gather(key = Alts, value = Flow, contains('cfs')) %>%
-  mutate(Alts = str_extract(Alts, "\\d([a-zA-Z])")) %>% 
-  mutate(Flow = as.numeric(Flow)) %>%
+  mutate(Alts = str_extract(Alts, "\\d([a-zA-Z])")) %>%
   filter(Date >= todays_date)
 
 real_flows <- kes_flows %>% left_join(kwk_flows, by = 'Date') %>%
@@ -362,13 +358,8 @@ ggplot() + geom_line(flows, mapping = aes(x = Date, y = Flow, color = Alts), siz
   annotate(geom = 'rect', xmin = as.Date('2023-09-01'), xmax = max(todays_date), 
            ymin = 4000, ymax = 10000, fill = 'darkgrey', color = 'black', alpha = 0.3, linetype = 'dotted') +
   annotate(geom = 'text', x = (mid + 1), y = 10300, size = 3, fontface = 'italic', label = 'Real-time Flows') +
-<<<<<<< HEAD
-  annotate(geom = 'text', x = as.Date('2023-09-03'), y = 9350, size = 2.25, label = 'KES') +
-  annotate(geom = 'text', x = as.Date('2023-09-03'), y = 7750, size = 2.25, label = 'KWK')
-=======
   annotate(geom = 'text', x = as.Date('2023-09-03'), y = 9350, size = 2.25, label = 'KWK') +
   annotate(geom = 'text', x = as.Date('2023-09-03'), y = 7750, size = 2.25, label = 'KES')
->>>>>>> 838e97c2556e7a993b0f70a9b5d98565421586c9
 
 
 
