@@ -317,7 +317,7 @@ reddsTable <- setDT(reddsDat)[,list(Count=.N), names(reddsDat)]
 ymin <- round_any(min(reddsTable$ACTUAL.or.ESTIMATED..DEWATER.FLOW), 1000, f = floor)
 #ymax <- round_any(max(reddsTable$ACTUAL.or.ESTIMATED..DEWATER.FLOW), 250, f = ceiling)
 ymax <- round_any(max(realFlow$KES_Flow), 250, f = ceiling)
-todays_date <- as.Date(max(kwk_flows$Date))
+todays_date <- as.Date(max(kwk_flows$Date, kes_flows$Date))
 mid <- as.Date('2023-09-01') + floor((todays_date - as.Date('2023-09-01'))/2)
 for(r in 1:nrow(reddsTable)){
   if(reddsTable$Status[r] == "EMERGED"){
@@ -357,7 +357,8 @@ ggplot() + geom_line(flows, mapping = aes(x = Date, y = Flow, color = Alts), siz
   scale_fill_manual(labels = c('Remaining', 'Emerged', 'Dewatered'), values = c('grey', 'lightblue', 'darkorange')) +
   annotate(geom = 'rect', xmin = as.Date('2023-09-01'), xmax = max(todays_date), 
            ymin = 4000, ymax = 10000, fill = 'darkgrey', color = 'black', alpha = 0.3, linetype = 'dotted') +
-  annotate(geom = 'text', x = (mid + 1), y = 10300, size = 3, fontface = 'italic', label = 'Real-time Flows') +
+  annotate(geom = 'text', x = (mid + 0.5), y = 10250, size = 3, 
+           fontface = 'italic', label = 'Real-time Flows') +
   annotate(geom = 'text', x = as.Date('2023-09-03'), y = 9350, size = 2.25, label = 'KWK') +
   annotate(geom = 'text', x = as.Date('2023-09-03'), y = 7750, size = 2.25, label = 'KES')
 
