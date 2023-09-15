@@ -16,7 +16,7 @@ yr <- 2023 #year of analysis
 yr_exp <- 3 #this year's expected expansion number based on the linear relationship between yearly expansions vs recapture rate of tagged female salmon
 fallreddCount<- 1000
 
-scenarios <- c("Alt.2c", "Alt.3g", "Alt.3h", "Alt.3i", "Alt.3j")
+scenarios <- c("Alt.2d", "Alt.3g", "Alt.3h", "Alt.3i", "Alt.3j")
 
 #KWK daily flows url.  This url will have to be updated.
 library(rvest)
@@ -360,8 +360,8 @@ flows <- kesFlowReal %>%
   mutate(Alts = str_extract(Alts, "\\d([a-zA-Z])")) %>%
   filter(Date >= todays_date)
 
-real_flows <- kes_flows %>% left_join(kwk_flows, by = 'Date') %>%
-  gather(key = 'Gauge', value = 'Flow', KES, KWK) %>% mutate(Flow = as.numeric(Flow))
+real_flows <- kes_flows %>% full_join(kwk_flows, by = 'Date') %>%
+  gather(key = 'Gauge', value = 'Flow', KES, KWK) %>% mutate(Flow = as.numeric(Flow)) %>% na.omit()
 
 ggplot() + geom_line(flows, mapping = aes(x = Date, y = Flow, color = Alts), size = 0.75) +
   geom_line(real_flows, mapping = aes(x = Date, y = Flow, linetype = Gauge), size = 0.75) +
