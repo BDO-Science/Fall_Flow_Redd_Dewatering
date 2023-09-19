@@ -9,14 +9,14 @@ output:
 ---
 
 ```{r, echo=FALSE, include = FALSE}
-reddCount <- 347
-countDate <- "August 13, 2023"
-updatedReddInfoDate <- "September 10, 2023"
+reddCount <- 354
+countDate <- "August 31, 2023"
+updatedReddInfoDate <- "September 18, 2023"
 yr <- 2023 #year of analysis
 yr_exp <- 3 #this year's expected expansion number based on the linear relationship between yearly expansions vs recapture rate of tagged female salmon
 fallreddCount<- 1000
 
-scenarios <- c("Alt.2d", "Alt.3g", "Alt.3h", "Alt.3i", "Alt.3j")
+scenarios <- c("Alt.1b", "Alt.2d", "Alt.2e", "Alt.3i", "Alt.3j", "Alt.3k")
 
 #KWK daily flows url.  This url will have to be updated.
 library(rvest)
@@ -47,8 +47,8 @@ setAs("character", "num.with.commas",
 
 #Read in redd data, converting flow to a numeric and date from character to date value
 redds <- read.csv("Redds.csv", colClasses=c('character', 'character', 'num.with.commas'))
-redds$Estimated.Date.of.Emergence <- as.Date(redds$Estimated.Date.of.Emergence, "%m/%d/%Y")
-#redds$Estimated.Date.of.Emergence <- as.Date(redds$Estimated.Date.of.Emergence,  "%Y-%m-%d")
+#redds$Estimated.Date.of.Emergence <- #as.Date(redds$Estimated.Date.of.Emergence, "%m/%d/%Y")
+redds$Estimated.Date.of.Emergence <- as.Date(redds$Estimated.Date.of.Emergence,  "%Y-%m-%d")
 reddsAll <- redds
 
 #Read in KES flow data, converting flow to a numeric and date from character to date value
@@ -208,11 +208,11 @@ As of `r countDate`, the unexpanded redd count is **`r reddCount`** Winter-run r
 
 Given that the number of Winter-run redds is always larger than the early season carcass counts, an expansion number based on historic data is multiplied by the carcass count to estimate the total number of redds for the season before the end of the season’s final estimate is developed and the final redd count is known. These additional estimates of redd counts (shown in Table 1) help to inform decisions regarding possible redd dewatering.
 
-**Table 1.** Estimated total number of Winter-run redds and resulting number of redds that represent 1% of the population. Estimated total redds are based on current count and expansion numbers representing 1) average 2005-2022 expansion, 2) year-specific expansion determined by the linear relationship between yearly expansions vs recapture rate of tagged female salmon, and 3) minimum 2005-2022 expansion.
+**Table 1.** Estimated total number of Winter-run redds and resulting number of redds that represent 1% of the population. Estimated total redds are based on current count and expansion numbers representing 1) average 2005-2022 expansion, 2) year-specific expansion determined by the linear relationship between yearly expansions vs recapture rate of tagged female salmon, 3) maximum 2005-2022 expansion, and 4) minimum 2005-2022 expansion.
 
 ```{r, echo = FALSE, message=FALSE}
-pop_tab <- data.frame(Name = c("Current Count", "Average Expansion", paste0("Expected ", yr, " Expansion"), "Conservative Expansion"),
-                      Expansion = c(1, 1.98, yr_exp, 1.25)
+pop_tab <- data.frame(Name = c("Current Count", "Average Expansion", paste0("Expected ", yr, " Expansion"), "Maximum Expansion", "Minimum Expansion"),
+                      Expansion = c(1, 1.98, yr_exp, 3.45, 1.25)
                       
 )
 
@@ -287,7 +287,7 @@ for(r in 1:nrow(redds)){ #loop over redds
 
 
 ```{r, echo=FALSE, results= TRUE}
-Metric <- c("Avg Sept Flow (cfs)", "Avg Oct Flow (cfs)", "Sept-Feb Total Volume (TAF)", "Aug-Oct Total Volume (TAF)", "Winter-run Redds dewatered", "Winter-run Percent Lost (based on current count)", paste0("Winter-run Percent Lost (based on this year's anticipated expansion of ", yr_exp, ")"), "Winter-run Percent Lost (based on average expansion of 1.98)", "Winter-run Percent Lost (based on conservative expansion of 1.25)", "Winter-run Redds Dewatered (w/ 250 cfs buffer)", "Winter-run Percent Lost (w/ 250 cfs buffer)")
+Metric <- c("Avg Sept Flow (cfs)", "Avg Oct Flow (cfs)", "Sept-Feb Total Volume (TAF)", "Aug-Oct Total Volume (TAF)", "Winter-run Redds dewatered", "Winter-run Percent Lost (based on current count)", paste0("Winter-run Percent Lost (based on this year's anticipated expansion of ", yr_exp, ")"), "Winter-run Percent Lost (based on average expansion of 1.98)", "Winter-run Percent Lost (based on maximum expansion of 3.45)",  "Winter-run Percent Lost (based on minimum expansion of 1.25)", "Winter-run Redds Dewatered (w/ 250 cfs buffer)", "Winter-run Percent Lost (w/ 250 cfs buffer)")
 table <- data.frame(Metric)
 
 
@@ -314,6 +314,8 @@ for(a in 1:(length(kesFlow)-1)){
   
   wr_pct_lost_200 <- round((sum(redds[ ,  paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6))], na.rm = TRUE)/(reddCount*1.98)*100), 1)
   
+  wr_pct_lost_345 <- round((sum(redds[ ,  paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6))], na.rm = TRUE)/(reddCount*3.45)*100), 1)
+  
   wr_pct_lost_25 <- round((sum(redds[ ,  paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6))], na.rm = TRUE)/(reddCount*1.25)*100), 1)
   
   wr_dewatered_250 <- sum(redds[ ,  paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6), "Buffer")], na.rm = TRUE)
@@ -321,7 +323,7 @@ for(a in 1:(length(kesFlow)-1)){
   wr_pct_lost_250 <- round((sum(redds[ ,  paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6), "Buffer")], na.rm = TRUE)/reddCount*100), 1)
  
  dflist[[a]] <- as.character(c(avg_sept_flow, avg_oct_flow, total_volume_sf, total_volume_ao, 
-                               wr_dewatered, wr_pct_lost, wr_pct_lost_300, wr_pct_lost_200, wr_pct_lost_25,
+                               wr_dewatered, wr_pct_lost, wr_pct_lost_300, wr_pct_lost_200, wr_pct_lost_345, wr_pct_lost_25,
                                 wr_dewatered_250, wr_pct_lost_250))
 
  table <- cbind(table, dflist[a])
@@ -377,7 +379,7 @@ ggplot() + geom_line(flows, mapping = aes(x = Date, y = Flow, color = Alts), siz
         axis.text = element_text(size = 8),
         axis.title = element_text(size = 10),
         legend.title = element_text(size = 9)) +
-  scale_fill_manual(labels = c('Remaining', 'Emerged', 'Dewatered'), values = c('grey', 'lightblue', 'darkorange')) +
+  scale_fill_manual(labels = c('Emerged', 'Remaining', 'Dewatered'), values = c('lightblue', 'grey', 'darkorange')) +
   annotate(geom = 'rect', xmin = as.Date('2023-09-01'), xmax = max(todays_date), 
            ymin = 4000, ymax = 10000, fill = 'darkgrey', color = 'black', alpha = 0.3, linetype = 'dotted') +
   annotate(geom = 'text', x = (mid + 0.5), y = 10250, size = 3, 
