@@ -355,7 +355,7 @@ for(r in 1:nrow(reddsTable)){
     }
   }
 }
-reddsTable <- reddsTable %>% rename('Date' = 'Estimated.Date.of.Emergence', 'Flow' = 'ACTUAL.or.ESTIMATED..DEWATER.FLOW') %>% mutate(cols = factor(cols, levels = c('Emerged', 'Dewatered', 'Remaining')))
+reddsTable <- reddsTable %>% rename('Date' = 'Estimated.Date.of.Emergence', 'Flow' = 'ACTUAL.or.ESTIMATED..DEWATER.FLOW') %>% mutate(cols = factor(cols, levels = c('Emerged', 'Remaining', 'Dewatered')))
 
 flows <- kesFlowReal %>% 
   gather(key = Alts, value = Flow, contains('cfs')) %>%
@@ -379,9 +379,9 @@ ggplot() + geom_line(flows, mapping = aes(x = Date, y = Flow, color = Alts), siz
         axis.text = element_text(size = 8),
         axis.title = element_text(size = 10),
         legend.title = element_text(size = 9)) +
-  scale_fill_manual(labels = c('Emerged', 'Dewatered', 'Remaining'), values = c('#33CCFF', '#CC6600', 'darkgrey')) +
+  scale_fill_manual(labels = c('Emerged', 'Remaining', 'Dewatered'), values = c('#33CCFF', 'darkgrey', '#CC6600')) +
   annotate(geom = 'rect', xmin = as.Date('2023-09-01'), xmax = max(todays_date), 
-           ymin = 4000, ymax = 10000, fill = 'darkgrey', color = 'black', alpha = 0.2, linetype = 'dotted') +
+           ymin = 3000, ymax = 10000, fill = 'darkgrey', color = 'black', alpha = 0.2, linetype = 'dotted') +
   annotate(geom = 'text', x = (mid + 0.5), y = 10250, size = 3, 
            fontface = 'italic', label = 'Real-time Flows') +
   annotate(geom = 'text', x = as.Date('2023-09-03'), y = 9350, size = 2.25, label = 'KWK') +
