@@ -16,7 +16,7 @@ yr <- 2023 #year of analysis
 yr_exp <- 3 #this year's expected expansion number based on the linear relationship between yearly expansions vs recapture rate of tagged female salmon
 fallreddCount<- 1000
 
-scenarios <- c("Alt.1c", "Alt.2e", "Alt.3i", "Alt.3j", "Alt.3k")
+scenarios <- c("Alt.1c", "Alt.2e", "Alt.3j", "Alt.3k", "Alt.3l", "Alt.3m")
 
 #KWK daily flows url.  This url may need to be updated.
 library(rvest)
@@ -342,7 +342,7 @@ reddsTable <- setDT(reddsDat)[,list(Count=.N), names(reddsDat)]
 ymin <- round_any(min(reddsTable$ACTUAL.or.ESTIMATED..DEWATER.FLOW), 1000, f = floor)
 #ymax <- round_any(max(reddsTable$ACTUAL.or.ESTIMATED..DEWATER.FLOW), 250, f = ceiling)
 ymax <- round_any(max(realFlow$KES_Flow), 250, f = ceiling)
-todays_date <- as.Date(max(kwk_flows$Date, kes_flows$Date))
+todays_date <- as.Date(max(kwk_flows$Date, kes_flows$Date, na.rm = TRUE), "%Y-%m-%d")
 mid <- as.Date('2023-09-01') + floor((todays_date - as.Date('2023-09-01'))/2)
 for(r in 1:nrow(reddsTable)){
   if(reddsTable$Status[r] == "EMERGED"){
@@ -355,7 +355,7 @@ for(r in 1:nrow(reddsTable)){
     }
   }
 }
-reddsTable <- reddsTable %>% rename('Date' = 'Estimated.Date.of.Emergence', 'Flow' = 'ACTUAL.or.ESTIMATED..DEWATER.FLOW') 
+reddsTable <- reddsTable %>% rename('Date' = 'Estimated.Date.of.Emergence', 'Flow' = 'ACTUAL.or.ESTIMATED..DEWATER.FLOW') %>% mutate(cols = factor(cols, levels = c('Dewatered', 'Emerged', 'Remaining')))
 
 flows <- kesFlowReal %>% 
   gather(key = Alts, value = Flow, contains('cfs')) %>%
@@ -381,7 +381,7 @@ ggplot() + geom_line(flows, mapping = aes(x = Date, y = Flow, color = Alts), siz
         legend.title = element_text(size = 9)) +
   scale_fill_manual(labels = c('De', 'Em', 'Re'), values = c('darkorange', 'lightblue', 'grey')) +
   annotate(geom = 'rect', xmin = as.Date('2023-09-01'), xmax = max(todays_date), 
-           ymin = 4000, ymax = 10000, fill = 'darkgrey', color = 'black', alpha = 0.3, linetype = 'dotted') +
+           ymin = 3000, ymax = 10000, fill = 'darkgrey', color = 'black', alpha = 0.2, linetype = 'dotted') +
   annotate(geom = 'text', x = (mid + 0.5), y = 10250, size = 3, 
            fontface = 'italic', label = 'Real-time Flows') +
   annotate(geom = 'text', x = as.Date('2023-09-03'), y = 9350, size = 2.25, label = 'KWK') +
