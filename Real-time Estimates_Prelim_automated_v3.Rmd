@@ -16,9 +16,9 @@ yr <- 2023 #year of analysis
 yr_exp <- 3 #this year's expected expansion number based on the linear relationship between yearly expansions vs recapture rate of tagged female salmon
 fallreddCount<- 1000
 
-scenarios <- c("Alt.1b", "Alt.2d", "Alt.2e", "Alt.3i", "Alt.3j", "Alt.3k")
+scenarios <- c("Alt.1c", "Alt.2e", "Alt.3i", "Alt.3j", "Alt.3k")
 
-#KWK daily flows url.  This url will have to be updated.
+#KWK daily flows url.  This url may need to be updated.
 library(rvest)
 kwk_webpage <- read_html('https://cdec.water.ca.gov/dynamicapp/QueryDaily?s=KWK&d')
 kes_webpage <- read_html('https://cdec.water.ca.gov/dynamicapp/QueryDaily?s=KES&d')
@@ -54,8 +54,8 @@ reddsAll <- redds
 #Read in KES flow data, converting flow to a numeric and date from character to date value
 kesFlow <- read.csv("kesFlow.csv")
 kesFlow <- read.csv("kesFlow.csv", colClasses=c(rep('character', length(kesFlow))))
-kesFlow$Date <- as.Date(kesFlow$Date, "%m/%d/%Y")
-#kesFlow$Date <- as.Date(kesFlow$Date, "%Y-%m-%d")
+#kesFlow$Date <- as.Date(kesFlow$Date, "%m/%d/%Y")
+kesFlow$Date <- as.Date(kesFlow$Date, "%Y-%m-%d")
 kesFlow <- kesFlow %>%
   as_tibble %>%
   select(Date, scenarios) %>%
@@ -379,7 +379,7 @@ ggplot() + geom_line(flows, mapping = aes(x = Date, y = Flow, color = Alts), siz
         axis.text = element_text(size = 8),
         axis.title = element_text(size = 10),
         legend.title = element_text(size = 9)) +
-  scale_fill_manual(labels = c('Emerged', 'Remaining', 'Dewatered'), values = c('lightblue', 'grey', 'darkorange')) +
+  scale_fill_manual(labels = c('De', 'Em', 'Re'), values = c('darkorange', 'lightblue', 'grey')) +
   annotate(geom = 'rect', xmin = as.Date('2023-09-01'), xmax = max(todays_date), 
            ymin = 4000, ymax = 10000, fill = 'darkgrey', color = 'black', alpha = 0.3, linetype = 'dotted') +
   annotate(geom = 'text', x = (mid + 0.5), y = 10250, size = 3, 
@@ -397,7 +397,7 @@ ggplot() + geom_line(flows, mapping = aes(x = Date, y = Flow, color = Alts), siz
 
 ```
 
-**Figure 1.** Actual or estimated emergence dates of SRWC redds and actual or estimated dewatering flow for the September-October estimated redd emergence dates as compared to Keswick flow (in cfs) of proposed management alternatives. Points represent emerged, dewatered, or remaining redds. Numbers inside of points indicate how many redds share that estimated emergence date and actual/estimated dewatering flow. Points that fall above/to the right of a flow alternative line are expected to be dewatered given that management alternative is followed. Points that fall below/to the left of/on a flow alternative line are not expected to be dewatered, given that management alternative is followed. Shaded gray box shows period of real-time flow data; dashed black line equals KWK gauge flow and solid black line equals KES flow (from [SacPas](https://www.cbr.washington.edu/sacramento/data/query_river_table.html)).
+**Figure 1.** Actual or estimated emergence dates of SRWC redds and actual or estimated dewatering flow for the September-October estimated redd emergence dates as compared to Keswick flow (in cfs) of proposed management alternatives. Points represent dewatered (De), emerged (EM), or remaining (Re) redds. Numbers inside of points indicate how many redds share that estimated emergence date and actual/estimated dewatering flow. Points that fall above/to the right of a flow alternative line are expected to be dewatered given that management alternative is followed. Points that fall below/to the left of/on a flow alternative line are not expected to be dewatered, given that management alternative is followed. Shaded gray box shows period of real-time flow data; dashed black line equals KWK gauge flow and solid black line equals KES flow (from [SacPas](https://www.cbr.washington.edu/sacramento/data/query_river_table.html)).
 
 
 # References

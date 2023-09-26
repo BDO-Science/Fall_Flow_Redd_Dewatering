@@ -1,0 +1,132 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{lmodern}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same} % disable monospaced font for URLs
+\hypersetup{
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\author{}
+\date{\vspace{-2.5em}}
+
+\begin{document}
+
+\hypertarget{fall_flow_redd_dewatering}{%
+\section{Fall\_Flow\_Redd\_Dewatering}\label{fall_flow_redd_dewatering}}
+
+code to create one page summary of Fall Flow scenarios and shallow redd
+dewatering \# LTO DSM Wrapper A wrapper for running WINTER RUN CHINOOK
+SALMON SCIENCE INTEGRATION TEAM MODEL and CHINOOK SALMON SCIENCE
+INTEGRATION TEAM MODEL as part of the Long-term Operation of the CVP.
+\textbf{September 2023}
+
+\hypertarget{primary-authors}{%
+\subsection{Primary Authors:}\label{primary-authors}}
+
+Lisa Elliott U.S. Bureau of Reclamation, Bay-Delta Office, Science
+Division \href{mailto:lelliott@usbr.gov}{\nolinkurl{lelliott@usbr.gov}}
+
+Chase Ehlo U.S. Bureau of Reclamation, Bay-Delta Office, Science
+Division \href{mailto:cehlo@usbr.gov}{\nolinkurl{cehlo@usbr.gov}}
+
+\hypertarget{disclaimers}{%
+\subsection{Disclaimers:}\label{disclaimers}}
+
+The script used to generate this document was developed by Bureau of
+Reclamation for the purposes of providing decision support for real-time
+Fall Flow reductions. The resulting document is for the purpose of
+comparing proposed alternatives and does not imply a specific policy
+position. It is for the purpose of comparing alternatives. No warranty
+expressed or implied is made regarding the display or utility of the
+code for other purposes, nor on all computer systems, nor shall the act
+of distribution constitute any such warranty. The U.S. Bureau of
+Reclamation or the U.S. Government shall not be held liable for improper
+or incorrect use of the code described and/or contained herein.
+
+\hypertarget{how-to-run-the-code}{%
+\subsection{How to run the code:}\label{how-to-run-the-code}}
+
+\textbf{Update} the Redds.csv file with the latest shallow redds data
+from Calfish.org or CDFW. Make sure that dates are clearly in
+``\%Y-\%m-\%d'' format. \textbf{Update} the kesFlow.csv file with any
+new flow scenarios of interest. Make sure that cell formatting for all
+flows is ``General'' (no commas). \textbf{Check} for an update on the
+YYYY\_WR\_INTERNET\_CARCASS-REDDS\_counts\_as\_of\_M\_dd\_YY.xlsx file
+from calfish.org. Check the ``Reporting'' sheet for the ``To date,
+unexpanded redd count'' (cell B88 as of 2023).\\
+\textbf{Update} input lines for ./Real-time
+Estimates\_Prelim\_automated\_v3.Rmd. All inputs that need to be
+adjusted are in the first chunk of code. \#\#\# Inputs to update: +
+reddCount = To date, unexpanded redd count from
+YYYY\_WR\_INTERNET\_CARCASS-REDDS\_counts\_as\_of\_M\_dd\_YY.xlsx *
+countDate = date associated with ``To date, unexpanded redd count from
+YYYY\_WR\_INTERNET\_CARCASS-REDDS\_counts\_as\_of\_M\_dd\_YY.xlsx'''' *
+updatedReddInfoDate = date of most recent shallow redds data from
+CDFW/PSMFC/calfish.org * yr = year of analysis * yr\_exp \#the analysis
+year's expected expansion number based on the linear relationship
+between yearly expansions vs recapture rate of tagged female salmon (see
+WR EXPANSIONS for Dewatered Redd Calculations 9-11-23.xlsx from CDFW) *
+fallreddCount = a number of fall run redds to use in simulations. We
+recommend using the current value of 1000. * scenarios = A list of
+scenarios under consideration * kwk\_webpage = cdec website for KWK gage
+daily flows * kes\_webpage = cdec website for KES gage daily flows
+\textbf{Run} ./Real-time Estimates\_Prelim\_automated\_v3.Rmd with
+Run/Run ALL to check that all code runs properly. \textbf{Knit}
+./Real-time Estimates\_Prelim\_automated\_v3.Rmd with Knit/Knit to Word
+
+\end{document}
