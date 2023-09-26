@@ -375,11 +375,12 @@ ggplot() + geom_line(flows, mapping = aes(x = Date, y = Flow, color = Alts), siz
   xlim(min(as.Date('2023-09-01')), (max(reddsTable$Date) + 5)) +
   labs(x = 'Date', y = 'Flow (cfs)', fill = 'Redd Status') +
   theme(legend.position = 'bottom', 
-        legend.text = element_text(size = 8), 
+        legend.text = element_text(size = 7), 
         axis.text = element_text(size = 8),
         axis.title = element_text(size = 10),
-        legend.title = element_text(size = 9)) +
-  scale_fill_manual(labels = c('De', 'Em', 'Re'), values = c('darkorange', 'lightblue', 'grey')) +
+        legend.title = element_text(size = 8),
+        legend.key.size = unit(0.3, 'cm')) +
+  scale_fill_manual(labels = c('Dewater', 'Emerge', 'Remain'), values = c('darkorange', 'lightblue', 'grey')) +
   annotate(geom = 'rect', xmin = as.Date('2023-09-01'), xmax = max(todays_date), 
            ymin = 3000, ymax = 10000, fill = 'darkgrey', color = 'black', alpha = 0.2, linetype = 'dotted') +
   annotate(geom = 'text', x = (mid + 0.5), y = 10250, size = 3, 
