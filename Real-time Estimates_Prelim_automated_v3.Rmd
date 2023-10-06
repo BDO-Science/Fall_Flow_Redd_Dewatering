@@ -11,12 +11,12 @@ output:
 ```{r, echo=FALSE, include = FALSE}
 reddCount <- 354
 countDate <- "August 31, 2023"
-updatedReddInfoDate <- "September 18, 2023"
+updatedReddInfoDate <- "October 3, 2023"
 yr <- 2023 #year of analysis
 yr_exp <- 3 #this year's expected expansion number based on the linear relationship between yearly expansions vs recapture rate of tagged female salmon
 fallreddCount<- 1000
 
-scenarios <- c("Alt.1c", "Alt.2e", "Alt.3j", "Alt.3k", "Alt.3l", "Alt.3m")
+scenarios <- c("Alt.1c", "Alt.2e", "Alt.3l", "Alt.3m", "Alt.3p", "Alt.3q")
 
 #KWK daily flows url.  This url may need to be updated.
 library(rvest)
@@ -46,16 +46,18 @@ setAs("character", "num.with.commas",
         function(from) as.numeric(gsub(",", "", from) ) )
 
 #Read in redd data, converting flow to a numeric and date from character to date value
-redds <- read.csv("Redds.csv", colClasses=c('character', 'character', 'num.with.commas'))
-#redds$Estimated.Date.of.Emergence <- #as.Date(redds$Estimated.Date.of.Emergence, "%m/%d/%Y")
-redds$Estimated.Date.of.Emergence <- as.Date(redds$Estimated.Date.of.Emergence,  "%Y-%m-%d")
+redds <- read.csv("Redds.csv", colClasses=c('character', 'character', 'character', 'num.with.commas'))
+redds$Estimated.Date.of.Emergence <- as.Date(redds$Estimated.Date.of.Emergence, "%m/%d/%Y")
+redds$Born.on.Date <- as.Date(redds$Born.on.Date, "%m/%d/%Y")
+#redds$Estimated.Date.of.Emergence <- as.Date(redds$Estimated.Date.of.Emergence,  "%Y-%m-%d")
+#redds$Estimated.Date.of.Emergence <- ymd(redds$Estimated.Date.of.Emergence)
 reddsAll <- redds
 
 #Read in KES flow data, converting flow to a numeric and date from character to date value
 kesFlow <- read.csv("kesFlow.csv")
 kesFlow <- read.csv("kesFlow.csv", colClasses=c(rep('character', length(kesFlow))))
-#kesFlow$Date <- as.Date(kesFlow$Date, "%m/%d/%Y")
-kesFlow$Date <- as.Date(kesFlow$Date, "%Y-%m-%d")
+kesFlow$Date <- as.Date(kesFlow$Date, "%m/%d/%Y")
+#kesFlow$Date <- as.Date(kesFlow$Date, "%Y-%m-%d")
 kesFlow <- kesFlow %>%
   as_tibble %>%
   select(Date, scenarios) %>%
@@ -234,6 +236,7 @@ There is no real time data on fall-run redd counts. Estimates are predicted base
 
 
 ```{r, echo = FALSE}
+library(lubridate)
 # Estimated number of redds dewatered
 for(a in 1:(length(kesFlow)-1)){
  redds[ ,  paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6))] <- NA
@@ -241,20 +244,32 @@ for(a in 1:(length(kesFlow)-1)){
 
 redds <- subset(redds, redds$Status == "OK" | redds$Status == "DEWATERED")
 
+
 for(r in 1:nrow(redds)){ #loop over redds
-  for(f in 1:nrow(kesFlow)){ #loop over KES flow
+  #find minimum flow for range of dates between born on flow and expected emergence date
+  kf <- kesFlow %>%
+    filter(Date <= as.Date(redds$Estimated.Date.of.Emergence[r], "%m/%d/%Y") & 
+             Date >= as.Date(redds$Born.on.Date[r], "%m/%d/%Y"))
     for(a in 1:(length(kesFlow)-1)){ #loop over alternatives
-      if(kesFlow$Date[f] == redds$Estimated.Date.of.Emergence[r]){ #if dates match
-        if(kesFlow[f, paste0("Alt", substr(names(kesFlow)[a + 1], 4,6))] <= redds$ACTUAL.or.ESTIMATED..DEWATER.FLOW[r]){ #If KES flow is < or = redd dewatering flow, 1 (dewatered)
+    minKF <- kf %>%
+      select(kf_alt = paste0("Alt", substr(names(kesFlow)[a + 1], 4,6))) %>%
+      summarize(min = min(as.numeric(kf_alt)))
+    
+    #if minimum flow is <= expected dewater flow, mark as 1
+   if(minKF <= redds$ACTUAL.or.ESTIMATED..DEWATER.FLOW[r]){ #If KES flow is < or = redd dewatering flow, 1 (dewatered)
           redds[r, paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6))] <- 1
         } else{ #If KES flow is greater than redd dewatering flow, mark 0 (not dewatered)
-          redds[r, paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6))] <- redds[r, paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6))] 
-          } #ends else
-      }
-    } #ends if date is the same
-  } #end looping over KES flow dataframe
+          redds[r, paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6))] <- redds[r, paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6))]
+          } #ends else   
+  #If the redd is already dewatered, it counts as dewatered
+    if(redds$Status[r] == "DEWATERED"){
+      redds[r, paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6))] <- 1
+    } else{ #If redd status is not dewatered
+          redds[r, paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6))] <- redds[r, paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6))]
+      } #ends else   
+
+    } #ends looping over alts
 } #end looping over redds dataframe
-#Based on the `r countDate` redd count:
 ```
 
 
@@ -264,20 +279,32 @@ for(a in 1:(length(kesFlow)-1)){
  redds[ ,  paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6), "Buffer")] <- NA
 }
 
+
 for(r in 1:nrow(redds)){ #loop over redds
-  for(f in 1:nrow(kesFlow)){ #loop over KES flow
+  #find minimum flow for range of dates between born on flow and expected emergence date
+  kf <- kesFlow %>%
+    filter(Date <= as.Date(redds$Estimated.Date.of.Emergence[r], "%m/%d/%Y") & 
+             Date >= as.Date(redds$Born.on.Date[r], "%m/%d/%Y"))
     for(a in 1:(length(kesFlow)-1)){ #loop over alternatives
-      if(kesFlow$Date[f] == redds$Estimated.Date.of.Emergence[r]){ #if dates match
-        if(as.numeric(kesFlow[f, paste0("Alt", substr(names(kesFlow)[a + 1], 4,6))]) <= redds$ACTUAL.or.ESTIMATED..DEWATER.FLOW[r] + 250){ #If KES flow is < or = redd dewatering flow, 1 (dewatered)
+    minKF <- kf %>%
+      select(kf_alt = paste0("Alt", substr(names(kesFlow)[a + 1], 4,6))) %>%
+      summarize(min = min(as.numeric(kf_alt)))
+    
+    #if minimum flow is <= expected dewater flow, mark as 1
+   if(minKF <= redds$ACTUAL.or.ESTIMATED..DEWATER.FLOW[r] + 250){ #If KES flow is < or = redd dewatering flow, 1 (dewatered)
           redds[r, paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6), "Buffer")] <- 1
         } else{ #If KES flow is greater than redd dewatering flow, mark 0 (not dewatered)
-          redds[r, paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6), "Buffer")] <- redds[r, paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6))] 
-          } #ends else
-      }
-    } #ends if date is the same
-  } #end looping over KES flow dataframe
+          redds[r, paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6), "Buffer")] <- redds[r, paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6), "Buffer")]
+          } #ends else   
+  #If the redd is already dewatered, it counts as dewatered
+    if(redds$Status[r] == "DEWATERED"){
+      redds[r, paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6), "Buffer")] <- 1
+    } else{ #If redd status is not dewatered
+          redds[r, paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6), "Buffer")] <- redds[r, paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6), "Buffer")]
+      } #ends else   
+
+    } #ends looping over alts
 } #end looping over redds dataframe
-#Based on the `r countDate` redd count:
 
 ```
 
