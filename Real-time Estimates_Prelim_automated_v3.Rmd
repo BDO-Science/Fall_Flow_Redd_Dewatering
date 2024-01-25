@@ -10,13 +10,13 @@ output:
 
 ```{r, echo=FALSE, include = FALSE}
 reddCount <- 354
-countDate <- "August 31, 2023"
-updatedReddInfoDate <- "October 3, 2023"
+countDate <- "September 21, 2023"
+updatedReddInfoDate <- "October 10, 2023"
 yr <- 2023 #year of analysis
 yr_exp <- 3 #this year's expected expansion number based on the linear relationship between yearly expansions vs recapture rate of tagged female salmon
 fallreddCount<- 1000
 
-scenarios <- c("Alt.1c", "Alt.2e", "Alt.3l", "Alt.3m", "Alt.3p", "Alt.3q")
+scenarios <- c("Alt.1c", "Alt.2e", "Alt.3m", "Alt.3r", "Alt.3s")
 
 #KWK daily flows url.  This url may need to be updated.
 library(rvest)
@@ -97,7 +97,7 @@ library(dplyr)
 library(lubridate)
 
 #create a cutoff date for later filtering
-cutoff_date <- as.Date(max(kwk_flows$Date))
+cutoff_date <- as.Date(max(kes_flows$Date, na.rm = TRUE))
 
 #select table for kwk and convert to dataframe
 kwk_temp <- kwk_webpage %>% html_nodes("table") %>% .[1] %>% html_table(fill = TRUE)
@@ -402,12 +402,12 @@ ggplot() + geom_line(flows, mapping = aes(x = Date, y = Flow, color = Alts), siz
   xlim(min(as.Date('2023-09-01')), (max(reddsTable$Date) + 5)) +
   labs(x = 'Date', y = 'Flow (cfs)', fill = 'Redd Status') +
   theme(legend.position = 'bottom', 
-        legend.text = element_text(size = 7), 
-        axis.text = element_text(size = 8),
-        axis.title = element_text(size = 10),
-        legend.title = element_text(size = 8),
+        legend.text = element_text(size = 12), 
+        axis.text = element_text(size = 10),
+        axis.title = element_text(size = 12),
+        legend.title = element_text(size = 14),
         legend.key.size = unit(0.3, 'cm')) +
-  scale_fill_manual(labels = c('Dewater', 'Emerge', 'Remain'), values = c('darkorange', 'lightblue', 'grey')) +
+  scale_fill_manual(labels = c('De', 'Em', 'Re'), values = c('darkorange', 'lightblue', 'grey')) +
   annotate(geom = 'rect', xmin = as.Date('2023-09-01'), xmax = max(todays_date), 
            ymin = 3000, ymax = 10000, fill = 'darkgrey', color = 'black', alpha = 0.2, linetype = 'dotted') +
   annotate(geom = 'text', x = (mid + 0.5), y = 10250, size = 3, 
@@ -425,7 +425,7 @@ ggplot() + geom_line(flows, mapping = aes(x = Date, y = Flow, color = Alts), siz
 
 ```
 
-**Figure 1.** Actual or estimated emergence dates of SRWC redds and actual or estimated dewatering flow for the September-October estimated redd emergence dates as compared to Keswick flow (in cfs) of proposed management alternatives. Points represent dewatered (De), emerged (EM), or remaining (Re) redds. Numbers inside of points indicate how many redds share that estimated emergence date and actual/estimated dewatering flow. Points that fall above/to the right of a flow alternative line are expected to be dewatered given that management alternative is followed. Points that fall below/to the left of/on a flow alternative line are not expected to be dewatered, given that management alternative is followed. Shaded gray box shows period of real-time flow data; dashed black line equals KWK gauge flow and solid black line equals KES flow (from [SacPas](https://www.cbr.washington.edu/sacramento/data/query_river_table.html)).
+**Figure 1.** Actual or estimated emergence dates of SRWC redds and actual or estimated dewatering flow for the September-October estimated redd emergence dates as compared to Keswick flow (in cfs) of proposed management alternatives. Points represent dewatered (De), emerged (Em), or remaining (Re) redds. Numbers inside of points indicate how many redds share that estimated emergence date and actual/estimated dewatering flow. Points that fall above/to the right of a flow alternative line are expected to be dewatered given that management alternative is followed. Points that fall below/to the left of/on a flow alternative line are not expected to be dewatered, given that management alternative is followed. Shaded gray box shows period of real-time flow data; dashed black line equals KWK gauge flow and solid black line equals KES flow (from [SacPas](https://www.cbr.washington.edu/sacramento/data/query_river_table.html)).
 
 
 # References
