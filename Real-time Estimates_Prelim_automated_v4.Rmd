@@ -3,46 +3,39 @@ title: "PRELIMINARY DATA: Redd Dewatering Estimates for Keswick Fall Flow Scenar
 author: "BDO Science Division"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
+  pdf_document: default
   html_document: default
 ---
-
-<!-- Add custom CSS to change the color of figure captions -->
-<style>
-  .caption {
-    color: grey !important;
-  }
-</style>
 
 ```{r setup, echo=FALSE, include = FALSE}
 #loading libraries and pulling in relevant data from excel files
 library(tinytex)
 library(data.table)
 library(plyr)
-library(lubridate)
 library(ggplot2)
-library(ggrepel)
-library(dplyr)
 library(tidyverse)
 library(readxl)
 library(zoo)
+library(kableExtra)
+library(janitor)
 
 #set desired scenarios for later filtering
-scenarios <- c("Alt.1c", "Alt.2e", "Alt.3m", "Alt.3r", "Alt.3s") 
+#scenarios <- c("Alt.1c", "Alt.2e", "Alt.3m", "Alt.3r", "Alt.3s") 
 
 #this function will convert the character values (from xlsx format of numbers with commas) to numeric class values
 setClass("num.with.commas")
 setAs("character", "num.with.commas", 
         function(from) as.numeric(gsub(",", "", from) ) )
+yr = year(Sys.Date())
 
 #Read in redd data from shallow winter redd monitoring
 redd_files <- list.files('External_data/ShallowRedds/', pattern = "\\.xlsx$", full.names = TRUE) #list all excel files
-MaxReddFile <- max(redd_files)
+MaxReddFile <- max(redd_files) #reads the latest redd excel file
 
-sheetShallow <- data.frame(excel_sheets(MaxReddFile)) %>% 
-  rename('name' = 1) %>% 
-  filter(grepl('SHALLOW', name, ignore.case = TRUE))
+reddsheets <- excel_sheets(MaxReddFile) #list all sheets
+reddsheet <- reddsheets[reddsheets == 'SHALLOW REDDS'] #filter sheet with shallow redd nfo
 
-redds <- read_excel(MaxReddFile,  sheet = sheetShallow[1,1], 
+redds <- read_excel(MaxReddFile,  sheet = reddsheet, #read in shallow redd file and clean up.
                     range = cell_cols(c('A:I')))
 redds <- redds %>% na.omit() %>% select(3,4,6,9) %>%
   rename('Born.on.Date' = 1, 'Estimated.Date.of.Emergence' = 2, 'ACTUAL.or.ESTIMATED..DEWATER.FLOW' = 4) %>%
@@ -53,25 +46,25 @@ reddsAll <- redds
 #Read in most recent flow scenario data, cleaning up datasheet, etc.
 Files <- list.files('External_data/FlowScen/', pattern = "xlsx$")
 MaxFile <- max(Files)
+flowsheets <- excel_sheets(paste0('External_data/FlowScen/',MaxFile))
+flowsheet <- grep("Alternatives", flowsheets, value = TRUE)
 kesFlow <- read_excel(paste0('External_data/FlowScen/',MaxFile), 
-                      sheet = 'KES Flow all', skip = 1, col_names = TRUE) %>%
-  slice(1:(n()-26)) %>% select(-c(2,28,29)) %>% 
-  mutate(Date = as.Date(as.numeric(Date), origin = "1899-12-30")) %>%
-  mutate_at(-1, as.numeric)
+                      sheet = flowsheet, skip = 1, col_names = TRUE) 
+colnames(kesFlow) <- gsub("[^[:alnum:]]+", "", colnames(kesFlow))
+kesFlow <- kesFlow %>%
+  clean_names() %>%
+  mutate(date = as.Date(as.numeric(date), origin = "1899-12-30")) %>%
+  filter(!is.na(date)) %>%
+  select(-contains("actual"), -contains("timeline")) %>%  # Exclude columns with 'Actual' and 'Timeline'
+  select_if(~ !all(is.na(.)))
+colnames(kesFlow) <- gsub("[^[:alnum:]]+", "", colnames(kesFlow))
 
-names <- colnames(kesFlow) #pull colnames for reformating
-pattern <- "Alt\\s*(\\d+[a-z]?)(?:\\s*\\([^)]+\\))?" # Define a pattern to match the common part you want to keep
-
-new_column_names <- gsub(pattern, "Alt.\\1", names) # Extract and format the desired column names
-new_column_names <- gsub("-rice comp$", "", new_column_names)
-
-colnames(kesFlow) <- new_column_names #set reformated names to column names
-
-kesFlow <- kesFlow %>% select(Date, all_of(scenarios)) #selects only scenarios your interested in
+#kesFlow <- kesFlow %>% select(Date, all_of(scenarios)) %>% #selects only scenarios your interested in
+ # mutate(Date = Date + 365)#temporary to test code
 
 #import fall-run spawn info
 spawn <- read.csv('Model_inputs/spawn_timing.csv') %>% 
-  mutate(Date = as.Date(Day, origin = as.Date('2023-01-01'))) %>% #will need to adjust origin for 2024
+  mutate(Date = as.Date(Day, origin = as.Date(paste0(yr,'-01-01')))) %>% #will need to adjust origin for 2024
   rename('EmergDays' = 'EmergDate') %>% filter(Run == 'Fall')
 
 #import gard look up table
@@ -81,21 +74,22 @@ fall_lookup <- read.csv('Model_inputs/model_dewater_flows.csv') %>%
 #read in Redd Count data and date from most recent file
 count_pattern <- 'To date, unexpanded redd count' #set pattern for count cell to look for
 date_pattern <- 'Through' #set pattern for date cell to look for
-sheetCount <- data.frame(excel_sheets(MaxReddFile)) %>% 
+CountFiles <- list.files('External_data/ShallowRedds/ReddCount/', pattern = "xlsx$") #read in most recent excel WITH count data
+MaxCountFile <- max(CountFiles)
+sheetCount <- data.frame(excel_sheets(paste0('External_data/ShallowRedds/ReddCount/',MaxCountFile))) %>% 
   rename('name' = 1) %>% 
   filter(grepl('REPORTING', name, ignore.case = TRUE))
 
 #for Count data
-Count <- read_excel(MaxReddFile,  sheet = sheetCount[1,1])
+Count <- read_excel(paste0('External_data/ShallowRedds/ReddCount/',MaxCountFile),  sheet = sheetCount[1,1])
 reddCount <- round(as.numeric(Count[[(which(Count[, 2] == 'To date, unexpanded redd count') + 1), 2]]),0)
 countDate <- format(as.Date(as.numeric(Count[[(which(Count[, 1] == 'Through') + 1), 1]]), 
                             origin = "1899-12-30"), "%B %d, %Y")
-updatedReddInfoDate <- format(as.Date(gsub(".*?(\\d{8}).*", "\\1", MaxReddFile), format = "%Y%m%d"), "%B %d, %Y")
-flow_date <- as.Date('2023-10-16')
-yr <- 2023 #year of analysis
+updatedReddInfoDate <- format(as.Date(gsub(".*?(\\d{4}-\\d{2}-\\d{2}).*", "\\1", MaxReddFile), format = "%Y-%m-%d"), "%B %d, %Y")
+flow_date <- Sys.Date()
 yr_exp <- 3 #this year's expected expansion number based on the linear relationship between yearly expansions vs recapture rate of tagged female salmon
 
-scenarios <- c("Alt.1c", "Alt.2e", "Alt.3m", "Alt.3r", "Alt.3s")
+#scenarios <- c("Alt.1c", "Alt.2e", "Alt.3m", "Alt.3r", "Alt.3s")
 
 #show_extra = TRUE
 ```
@@ -113,11 +107,11 @@ library(lubridate)
 
 # query parameters for SacPAS
 # calendar year
-queryYear=2023
+queryYear=yr
 # query dates can be empty string "" or explicit "mm/dd" (value will be NA for future dates or missing dates)
 # empty string for end date will result in data through most recent date in database for given year
 querySD="8/1"
-queryED= paste0(month(as.Date('2023-10-08')),'/',day(as.Date('2023-10-08')))
+queryED= paste0(month(Sys.Date()),'/',day(Sys.Date()-1))
 outputFormat="csvSingle"
 
 # KWK river flow data from SacPAS
@@ -137,33 +131,36 @@ allflows <- allflows %>%
 ```{r, echo = FALSE}
 # Converting flows to Thousand Acre Feet and overlaying real time flows over flow scenarios as season progresses
 kes <- allflows %>% filter(Gage =='KES') %>% select(-Gage, Date, KES = 'Flow')
-kesFlowReal <- merge(kesFlow, kes, by = "Date", all.x = TRUE, all.y = TRUE)
-for(a in 1:(length(kesFlow)-1)){
- kesFlowReal[ ,  paste0("A", substr(names(kesFlow)[a + 1], 4,6), "cfs")] <- NA
- kesFlowReal[ ,  paste0("A", substr(names(kesFlow)[a + 1], 4,6), "taf")] <- NA
+names <- colnames(kesFlow)
+names <- names[names != "date"]
+kesTemp <- data.frame(Date = kes$Date)
+
+for(i in names) {
+  name <- i
+  temp <- data.frame(name = kes$KES)
+  kesTemp <- cbind(kesTemp, temp)
 }
 
-for(a in 1:(length(kesFlow)-1)){
-  for(r in 1: nrow(kesFlowReal)){
-    if(is.na(kesFlowReal$KES[r])){
-      kesFlowReal[r, paste0("A", substr(names(kesFlow)[a + 1], 4,6), "cfs")] <- as.numeric(kesFlowReal[r, paste0("Alt", substr(names(kesFlow)[a + 1], 4,6))])
-      kesFlowReal[r, paste0("A", substr(names(kesFlow)[a + 1], 4,6), "taf")] <- (as.numeric(kesFlowReal[r, paste0("Alt", substr(names(kesFlow)[a + 1], 4,6))])*1.983)/1000
-    } else{
-      kesFlowReal[r, paste0("A", substr(names(kesFlow)[a + 1], 4,6), "cfs")] <- as.numeric(kesFlowReal$KES[r])
-      kesFlowReal[r, paste0("A", substr(names(kesFlow)[a + 1], 4,6), "taf")] <- (as.numeric(kesFlowReal$KES[r])*1.983)/1000
-    }
-  }
-}
+colnames(kesTemp) <- colnames(kesFlow)
 
-septTAF <- subset(kesFlowReal, months(kesFlowReal$Date) == "September")
-octTAF <- subset(kesFlowReal, months(kesFlowReal$Date) == "October")
+kesFlowReal <- bind_rows(kesTemp, filter(kesFlow, date > max(kes$Date))) 
+
+
+kesFlowReal <- kesFlowReal %>% 
+  rename_with(~ paste0(., "_cfs"), -date) %>%  # Rename original columns with '_cfs'
+  mutate(across(ends_with("_cfs"), ~ . * 1.983 / 1000, .names = "{.col %>% str_replace('_cfs$', '')}_taf"))
+
+septTAF <- subset(kesFlowReal, months(kesFlowReal$date) == "September")
+octTAF <- subset(kesFlowReal, months(kesFlowReal$date) == "October")
 
 ```
 
 ```{r, echo = FALSE}
 # September Flow Average
-septKesFlow <- subset (kesFlow, kesFlow$Date < '2023-10-01' & kesFlow$Date >= '2023-9-01')
-octKesFlow <- subset (kesFlow, kesFlow$Date >= '2023-10-01' & kesFlow$Date < '2023-11-01')
+septKesFlow <- subset (kesFlowReal, kesFlowReal$date < paste0(yr,'-10-01') & kesFlowReal$date >= paste0(yr, '-9-01'))
+septKesFlow <- septKesFlow %>% select(date, contains("_cfs"))
+octKesFlow <- subset (kesFlowReal, kesFlowReal$date >= paste0(yr,'-10-01') & kesFlowReal$date < paste0(yr, '-11-01'))
+octKesFlow <- octKesFlow %>% select(date, contains("_cfs"))
 ```
 
 ```{r, echo = FALSE, message=FALSE}
@@ -176,20 +173,20 @@ round_to_nearest <- function(x, basis_vector) {
 #transform kesFlowReal dataframe for model
 redd_model <- kesFlowReal %>% 
   gather(key = Scenarios, value = Spawn_Flows, contains('cfs')) %>%
-  select(Date, Scenarios, Spawn_Flows) %>% 
-  mutate(Boards = if_else(Date < as.Date('2023-11-01'), 'in', 'out')) %>% 
+  select(date, Scenarios, Spawn_Flows) %>% 
+  mutate(Boards = if_else(date < as.Date(paste0(yr,'-11-01')), 'in', 'out')) %>% 
   mutate(Spawn_Flows = as.numeric(Spawn_Flows)) %>% 
-  left_join(spawn, by = 'Date') %>% 
+  left_join(spawn, by = c('date'= 'Date')) %>% 
   filter(!is.na(Run)) %>%
-  mutate(Spawn_Flows = na.approx(Spawn_Flows), EmergDate = Date + EmergDays) %>%
+  mutate(Spawn_Flows = na.approx(Spawn_Flows), EmergDate = date + EmergDays) %>%
   mutate(Dewater = sapply(EmergDate, function(edate) {
     if (!is.na(edate)) {
-      min(Spawn_Flows[Date <= edate & Date >= Date], na.rm = TRUE)
+      min(Spawn_Flows[date <= edate & date >= date], na.rm = TRUE)
     } else {
       NA
     }
   })) %>%
-  mutate(Boards = if_else(month(Date) < 11, 'in', 'out')) 
+  mutate(Boards = if_else(month(date) < 11, 'in', 'out')) 
 redd_model <- redd_model %>%
   mutate(GardSpawn = sapply(redd_model$Spawn_Flows, round_to_nearest, fall_lookup$GardSpawn)) %>%
   mutate(GardDewater = sapply(redd_model$Dewater, round_to_nearest, fall_lookup$GardDewater)) %>%
@@ -225,92 +222,54 @@ pop_tab <- pop_tab %>%
     "Total Redds" = Redds)
 
 knitr::kable(pop_tab,
-             caption = 'Table 1. Estimated total number of Winter-run redds and resulting number of redds that represent 1% of the population. Estimated total redds are based on current count and expansion numbers representing 1) average 2005-2022 expansion, 2) year-specific expansion determined by the linear relationship between yearly expansions vs recapture rate of tagged female salmon, 3) maximum 2005-2022 expansion, and 4) minimum 2005-2022 expansion.')
+             caption = 'Estimated total number of Winter-run redds and resulting number of redds that represent 1% of the population. Estimated total redds are based on current count and expansion numbers representing 1) average 2005-2022 expansion, 2) year-specific expansion determined by the linear relationship between yearly expansions vs recapture rate of tagged female salmon, 3) maximum 2005-2022 expansion, and 4) minimum 2005-2022 expansion.')
 ```
 
 ## Chinook Salmon Dewatered Redd Estimates
 
 As of `r updatedReddInfoDate`, **`r nrow(subset(reddsAll, reddsAll$Status == "EMERGED"))`** Winter-run redds have **emerged** and **`r nrow(subset(reddsAll, reddsAll$Status == "DEWATERED"))`** have been **dewatered**. This leaves **`r nrow(subset(reddsAll, reddsAll$Status == "OK"))`** shallow water redds of concern.
 
-There is no real time data on fall-run redd counts. Estimates are predicted based on estimated dewatering percentages from USFWS (2006) and spring-run and fall-run spawn timing based on fresh female carcasses encountered by week from 2003 through 2022. Estimated emergence dates are based on river water temperatures during fall-run period at the CCR gauge in 2011 that most closely mimics the 2023 summer water temperatures. Fall-run dewatered redd estimates range from **`r min(summary[2])`** to **`r max(summary[2])`%**.
+There is no real time data on fall-run redd counts. Estimates are predicted based on estimated dewatering percentages from USFWS (2006) and spring-run and fall-run spawn timing based on fresh female carcasses encountered by week from 2003 through 2022 and emergence timing were predicted from average water temperatures over the same time period. Fall-run dewatered redd estimates range from **`r min(summary[2])`** to **`r max(summary[2])`%**.
 
 ```{r, echo = FALSE}
 library(lubridate)
+
 # Estimated number of redds dewatered
-for(a in 1:(length(kesFlow)-1)){
- redds[ ,  paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6))] <- NA
+kesFlowReal2 <- kesFlowReal %>% select(date, contains("_cfs"))
+kesFlowReal3 <- kesFlowReal2 %>% gather(key = 'Alts', value = 'Flow', -date)
+name2 <- colnames(kesFlowReal2)
+name2 <- name2[name2 != "date"]
+
+#formatting new redds file for figuring out minimum flows
+redds2 <- subset(redds, redds$Status == "OK" | redds$Status == "DEWATERED")
+
+for (col in name2) { #adding alternative names to redd dataframe
+  redds2[[col]] <- NA
 }
 
-redds <- subset(redds, redds$Status == "OK" | redds$Status == "DEWATERED")
+redds2 <- redds2 %>% gather(key = 'Alts', value = 'Flow', -1:-4) %>%
+  select(-Flow)
+flowList <- list()
 
-
-for(r in 1:nrow(redds)){ #loop over redds
-  #find minimum flow for range of dates between born on flow and expected emergence date
-  kf <- kesFlow %>%
-    filter(Date <= redds$Estimated.Date.of.Emergence[r] & 
-             Date >= redds$Born.on.Date[r])
-    for(a in 1:(length(kesFlow)-1)){ #loop over alternatives
-    minKF <- kf %>%
-      select(kf_alt = paste0("Alt", substr(names(kesFlow)[a + 1], 4,6))) %>%
-      summarize(min = min(as.numeric(kf_alt)))
-    
-    #if minimum flow is <= expected dewater flow, mark as 1
-   if(minKF <= redds$ACTUAL.or.ESTIMATED..DEWATER.FLOW[r]){ #If KES flow is < or = redd dewatering flow, 1 (dewatered)
-          redds[r, paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6))] <- 1
-        } else{ #If KES flow is greater than redd dewatering flow, mark 0 (not dewatered)
-          redds[r, paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6))] <- redds[r, paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6))]
-          } #ends else   
-  #If the redd is already dewatered, it counts as dewatered
-    if(redds$Status[r] == "DEWATERED"){
-      redds[r, paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6))] <- 1
-    } else{ #If redd status is not dewatered
-          redds[r, paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6))] <- redds[r, paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6))]
-      } #ends else   
-
-    } #ends looping over alts
-} #end looping over redds dataframe
-```
-
-```{r, echo = FALSE}
-# Estimated number of redds dewatered with a 100cfs buffer
-for(a in 1:(length(kesFlow)-1)){
- redds[ ,  paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6), "Buffer")] <- NA
+for(i in 1:nrow(redds2)){
+  filtered <- kesFlowReal3 %>% filter(Alts == redds2$Alts[i]) %>%
+    filter(date >= redds2$Born.on.Date[i] & date <= redds2$Estimated.Date.of.Emergence[i])
+  minflow <- min(filtered$Flow)
+  flowList[[i]] <- minflow
 }
 
-
-for(r in 1:nrow(redds)){ #loop over redds
-  #find minimum flow for range of dates between born on flow and expected emergence date
-  kf <- kesFlow %>%
-    filter(Date <= redds$Estimated.Date.of.Emergence[r] & 
-             Date >= redds$Born.on.Date[r])
-    for(a in 1:(length(kesFlow)-1)){ #loop over alternatives
-    minKF <- kf %>%
-      select(kf_alt = paste0("Alt", substr(names(kesFlow)[a + 1], 4,6))) %>%
-      summarize(min = min(as.numeric(kf_alt)))
-    
-    #if minimum flow is <= expected dewater flow, mark as 1
-   if(minKF <= redds$ACTUAL.or.ESTIMATED..DEWATER.FLOW[r] + 250){ #If KES flow is < or = redd dewatering flow, 1 (dewatered)
-          redds[r, paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6), "Buffer")] <- 1
-        } else{ #If KES flow is greater than redd dewatering flow, mark 0 (not dewatered)
-          redds[r, paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6), "Buffer")] <- redds[r, paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6), "Buffer")]
-          } #ends else   
-  #If the redd is already dewatered, it counts as dewatered
-    if(redds$Status[r] == "DEWATERED"){
-      redds[r, paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6), "Buffer")] <- 1
-    } else{ #If redd status is not dewatered
-          redds[r, paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6), "Buffer")] <- redds[r, paste0("dewateredAlt", substr(names(kesFlow)[a + 1], 4,6), "Buffer")]
-      } #ends else   
-
-    } #ends looping over alts
-} #end looping over redds dataframe
-#organizing redd dataframe for better implementation with dplyr
-dewater <- redds %>% gather(key = 'alts', value = 'Dewatered', -1:-4) %>% 
-  mutate(Buffer = if_else(grepl('Buffer', alts), 'YES', 'NO')) %>% 
-  mutate(alts = gsub('dewatered', '', alts)) %>% 
-  mutate(alts = gsub('Buffer', '', alts)) %>% select(5:7) %>%
+test2 <- cbind(flowList)
+dewater <- cbind(redds2, test2)
+dewater <- dewater %>% mutate(Dewater = if_else(flowList <= ACTUAL.or.ESTIMATED..DEWATER.FLOW, 1, 0)) %>%
+  mutate(Dewater_Buffer = ACTUAL.or.ESTIMATED..DEWATER.FLOW + 250) %>%
+  mutate(Dewatered_Buffer = if_else(flowList <= Dewater_Buffer, 1, 0)) %>%
+  gather(key = 'Type', value = 'Dewater', 7,9) %>%
+  mutate(Buffer = if_else(grepl('Buffer', Type), 'YES', 'NO')) %>%
+  select(5,9,10) %>%
   mutate(key = row_number())
+  
+dewater <- dewater %>% spread(key = 'Alts', value = 'Dewater')
 
-dewater <- dewater %>% spread(key = 'alts', value = 'Dewatered')
 ```
 
 
@@ -335,14 +294,14 @@ table <- data.frame(Metric)
 tableList <- list()
 
 #summary statistics for flow which are stored in tableList
-tableList <- append(tableList, list(avg_sept_flow = colMeans(septKesFlow[,-1])), after = length(tableList))
-tableList <- append(tableList, list(avg_oct_flow = colMeans(octKesFlow[,-1])), after = length(tableList))
+tableList <- append(tableList, list(avg_sept_flow = colMeans(septKesFlow[,-1], na.rm = TRUE)), after = length(tableList))
+tableList <- append(tableList, list(avg_oct_flow = colMeans(octKesFlow[,-1], na.rm = TRUE)), after = length(tableList))
 tableList <- tableList %>% append(
-    list(total_volume_sf = (colSums(filter(kesFlow, Date >= '2023-09-01' & Date < '2024-03-01')[, -1])*1.983/1000)),
+    list(total_volume_sf = (colSums(filter(kesFlowReal2, date >= paste0(yr,'-09-01') & date < paste0(yr+1,'-03-01'))[, -1])*1.983/1000)),
     after = length(tableList)
   )
 tableList <- tableList %>% append(
-    list(total_volume_ao = (colSums(filter(kesFlow, Date >= '2023-08-01' & Date < '2023-11-01')[, -1])*1.983/1000)),
+    list(total_volume_ao = (colSums(filter(kesFlowReal2, date >= paste0(yr,'-08-01') & date < paste0(yr,'-11-01'))[, -1])*1.983/1000)),
     after = length(tableList)
   )
 
@@ -392,23 +351,26 @@ table <- bind_cols(Metric, temp_table) %>% rename('Metric' = 1)
 
 #adding fall-run dewatering to table
 table <- rbind(table, setNames(table2, names(table))) %>% 
-  mutate_at(c(2:6), as.numeric)
-table[,2:6] <- round(table[,2:6], digits = 2)
+  mutate_at(c(2:ncol(table)), as.numeric)
+table[,2:ncol(table)] <- round(table[,2:ncol(table)], digits = 2)
+colnames(table) <- gsub("_cfs$", "", colnames(table))
 
 knitr::kable(table,
-             caption = paste0('Table 2. Average September and October Keswick (KES) Flow in cfs, total water volume of each alternative for August through October and September through February in TAF, estimated numbers of SRWC redds dewatered, and percent of population that would be lost under each of the proposed alternatives. KES Flow data uses actual flow-to-date as of ',format(max(allflows$Date), '%B %d, %Y'),' and proposed flows for the remainder of the incubation period. Redd dewatering is considered at the actual or estimated dewatering flow and with a 250 cfs buffer applied to the actual/estimated dewatering flow. Percentage of the population lost is based on the ',updatedReddInfoDate,' count of ',reddCount,' Winter-run redds and updated redd counts may be available soon. See Scenario Descriptions file for additional information on each scenario.'))
+             caption = paste0('Average September and October Keswick (KES) Flow in cfs, total water volume of each alternative for August through October and September through February in TAF, estimated numbers of SRWC redds dewatered, and percent of population that would be lost under each of the proposed alternatives. KES Flow data uses actual flow-to-date as of ',format(max(allflows$Date), '%B %d, %Y'),' and proposed flows for the remainder of the incubation period. Redd dewatering is considered at the actual or estimated dewatering flow and with a 250 cfs buffer applied to the actual/estimated dewatering flow. Percentage of the population lost is based on the ',countDate,' count of ',reddCount,' Winter-run redds and updated redd counts may be available soon. See Scenario Descriptions file for additional information on each scenario.'))
 ```
 
 
 
-```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.cap = 'Figure 1. Actual or estimated emergence dates of SRWC redds and actual or estimated dewatering flow for the September-October estimated redd emergence dates as compared to Keswick flow (in cfs) of proposed management alternatives. Points represent dewatered (De), emerged (Em), or remaining (Re) redds. Numbers inside of points indicate how many redds share that estimated emergence date and actual/estimated dewatering flow. Points that fall above/to the right of a flow alternative line are expected to be dewatered given that management alternative is followed. Points that fall below/to the left of/on a flow alternative line are not expected to be dewatered, given that management alternative is followed. Shaded gray box shows period of real-time flow data; dashed black line equals KWK gauge flow and solid black line equals KES flow (from [SacPas](https://www.cbr.washington.edu/sacramento/data/query_river_table.html)).', fig.dim = c(8,5)}
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.cap = 'Actual or estimated emergence dates of SRWC redds and actual or estimated dewatering flow for the September-October estimated redd emergence dates as compared to Keswick flow (in cfs) of proposed management alternatives. Points represent dewatered (De), emerged (Em), or remaining (Re) redds. Numbers inside of points indicate how many redds share that estimated emergence date and actual/estimated dewatering flow. Points that fall above/to the right of a flow alternative line are expected to be dewatered given that management alternative is followed. Points that fall below/to the left of/on a flow alternative line are not expected to be dewatered, given that management alternative is followed. Shaded gray box shows period of real-time flow data; dashed black line equals KWK gauge flow and solid black line equals KES flow (from [SacPas](https://www.cbr.washington.edu/sacramento/data/query_river_table.html)).'}
+
+#, fig.dim = c(8,5)
 reddsDat <- reddsAll
 reddsTable <- setDT(reddsDat)[,list(Count=.N), names(reddsDat)]
 ymin <- round_any(min(reddsTable$ACTUAL.or.ESTIMATED..DEWATER.FLOW), 1000, f = floor)
 #ymax <- round_any(max(reddsTable$ACTUAL.or.ESTIMATED..DEWATER.FLOW), 250, f = ceiling)
-ymax <- round_any(max(allflows$Flow), 250, f = ceiling)
-todays_date <- as.Date(max(allflows$Date, na.rm = TRUE), "%Y-%m-%d")
-mid <- as.Date('2023-09-01') + floor((todays_date - as.Date('2023-09-01'))/2)
+ymax <- round_any(max(allflows$Flow)+250, 500, f = ceiling)
+todays_date <- Sys.Date()
+mid <- as.Date(paste0(yr,'-08-01')) + floor((todays_date - as.Date(paste0(yr,'-08-01')))/2)
 for(r in 1:nrow(reddsTable)){
   if(reddsTable$Status[r] == "EMERGED"){
     reddsTable$cols[r] <- "Emerged"
@@ -420,21 +382,24 @@ for(r in 1:nrow(reddsTable)){
     }
   }
 }
-reddsTable <- reddsTable %>% rename('Date' = 'Estimated.Date.of.Emergence', 'Flow' = 'ACTUAL.or.ESTIMATED..DEWATER.FLOW') %>% mutate(cols = factor(cols, levels = c('Dewatered', 'Emerged', 'Remaining')))
+reddsTable <- reddsTable %>% 
+  rename('Date' = 'Estimated.Date.of.Emergence', 'Flow' = 'ACTUAL.or.ESTIMATED..DEWATER.FLOW') %>% 
+  mutate(cols = factor(cols, levels = c('Remaining', 'Emerged', 'Dewatered'), labels = c('Re','Em', 'De')))
 
 flows <- kesFlowReal %>% 
   gather(key = Alts, value = Flow, contains('cfs')) %>%
-  mutate(Alts = str_extract(Alts, "\\d([a-zA-Z])")) %>%
-  filter(Date >= todays_date)
+  filter(date >= todays_date) %>%
+  mutate(Alts = gsub('_cfs','',Alts))
 
-ggplot() + geom_line(flows, mapping = aes(x = Date, y = Flow, color = Alts), size = 0.75) +
+ggplot() + geom_line(flows, mapping = aes(x = date, y = Flow, color = Alts), size = 0.75) +
   geom_line(allflows, mapping = aes(x = Date, y = Flow, linetype = Gage), size = 0.75) +
   scale_linetype_discrete(guide = "none") +
   geom_label(reddsTable, mapping = aes(x = Date, y = Flow, 
                                        label = Count, fill = cols), min.segment.length = 4,
-             postion = 'dodge', size = 3, label.padding = unit(0.25, 'lines'),label.r = unit(.35, 'lines'), fontface = 'bold', alpha = 0.6) + #facet_wrap(~Alternates) +
+             postion = 'dodge', size = 3, label.padding = unit(0.25, 'lines'),label.r = unit(.35, 'lines'), 
+             fontface = 'bold', alpha = 0.6) +
   ylim(ymin, ymax) +
-  xlim(min(as.Date('2023-09-01')), (max(reddsTable$Date) + 5)) +
+  xlim(min(as.Date(paste0(yr,'-08-01'))), (max(reddsTable$Date) + 5)) +
   labs(x = 'Date', y = 'Flow (cfs)', fill = 'Redd Status') +
   theme(legend.position = 'bottom', 
         legend.text = element_text(size = 12), 
@@ -442,10 +407,10 @@ ggplot() + geom_line(flows, mapping = aes(x = Date, y = Flow, color = Alts), siz
         axis.title = element_text(size = 12),
         legend.title = element_text(size = 14),
         legend.key.size = unit(0.3, 'cm')) +
-  scale_fill_manual(labels = c('De', 'Em', 'Re'), values = c('darkorange', 'steelblue3', 'lightgrey')) +
-  annotate(geom = 'rect', xmin = as.Date('2023-09-01'), xmax = max(todays_date), 
-           ymin = 3000, ymax = 10000, fill = 'darkgrey', color = 'black', alpha = 0.2, linetype = 'dotted') +
-  annotate(geom = 'text', x = (mid + 0.5), y = 10250, size = 3.5, 
+  scale_fill_manual(values = c('lightgrey', 'steelblue3', 'darkorange')) +
+  annotate(geom = 'rect', xmin = as.Date(paste0(yr,'-08-01')), xmax = max(todays_date), 
+           ymin = 3000, ymax = max(allflows$Flow) + 100, fill = 'darkgrey', color = 'black', alpha = 0.2, linetype = 'dotted') +
+  annotate(geom = 'text', x = (mid + 0.5), y = max(allflows$Flow) + 400, size = 3.5, 
            fontface = 'italic', label = 'Real-time Flows') +
   annotate(geom = 'text', x = as.Date('2023-09-03'), y = 9350, size = 3, label = 'KWK') +
   annotate(geom = 'text', x = as.Date('2023-09-03'), y = 7750, size = 3, label = 'KES')
@@ -453,7 +418,7 @@ ggplot() + geom_line(flows, mapping = aes(x = Date, y = Flow, color = Alts), siz
 ```
 
 
-```{r, echo=FALSE, message = FALSE}
+```{r echo=FALSE, message=FALSE}
 worksheetSD <- read_xlsx(paste0('External_data/FlowScen/',MaxFile), sheet = "Scenario Description",range="A1:A1000",col_names=F,col_types="text")
 # remove extraneous lines, keeping lines with "=" in it
 keep=apply(worksheetSD,2,function(x.in) str_detect(x.in,"="))
@@ -471,13 +436,14 @@ for(i in 1:num.in){
 
 #use scenarios defined in first chunk of code to filter the scenarioDesc dataframe
 
-scenarios2 <- str_replace(scenarios, 'Alt.', '') #parse down to include just the scenario name
+#scenarios2 <- str_replace(scenarios, 'Alt.', '') #parse down to include just the scenario name
 
 #filter based on scenario name
-scenarioDesc <- scenarioDesc %>% 
-  filter(grepl(paste(toupper(scenarios2), collapse ='|'), toupper(Scenario)))
-knitr::kable(scenarioDesc,
-             caption = 'Table 3. Description of scenarios being considered and compared by the Upper Sacramento Scheduling Team.')
+#scenarioDesc <- scenarioDesc %>% 
+  #filter(grepl(paste(toupper(scenarios2), collapse ='|'), toupper(Scenario)))
+knitr::kable(scenarioDesc, caption = 'Description of scenarios being considered and compared by the Upper Sacramento Scheduling Team.') %>%
+  column_spec(1, width = "2cm") %>%
+  column_spec(2, width = "14cm")
 ```
 # References
 
