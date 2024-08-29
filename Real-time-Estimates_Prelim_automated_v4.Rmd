@@ -26,28 +26,43 @@ library(janitor)
 setClass("num.with.commas")
 setAs("character", "num.with.commas", 
         function(from) as.numeric(gsub(",", "", from) ) )
-yr = year(Sys.Date())
 
-#Read in redd data from shallow winter redd monitoring
+#setting yr for automating certain lables and filtering
+yr = year(Sys.Date())
+flow_date <- Sys.Date() #for later filterning
+yr_exp <- 2 #this year's expected expansion number based on the linear relationship between yearly expansions vs recapture rate of tagged female salmon
+
+########Read in redd data from shallow winter redd monitoring
 redd_files <- list.files('External_data/ShallowRedds/', pattern = "\\.xlsx$", full.names = TRUE) #list all excel files
 MaxReddFile <- max(redd_files) #reads the latest redd excel file
-
 reddsheets <- excel_sheets(MaxReddFile) #list all sheets
 reddsheet <- reddsheets[reddsheets == 'SHALLOW REDDS'] #filter sheet with shallow redd nfo
 
 redds <- read_excel(MaxReddFile,  sheet = reddsheet, #read in shallow redd file and clean up.
-                    range = cell_cols(c('A:I')))
-redds <- redds %>% na.omit() %>% select(3,4,6,9) %>%
+                    range = cell_cols(c('A:I'))) %>% 
+  na.omit() %>% 
+  select(3,4,6,9) %>%
   rename('Born.on.Date' = 1, 'Estimated.Date.of.Emergence' = 2, 'ACTUAL.or.ESTIMATED..DEWATER.FLOW' = 4) %>%
   mutate_at(1:2, as.Date)#minor cleaning
 
 reddsAll <- redds
 
-#Read in most recent flow scenario data, cleaning up datasheet, etc.
+########Read in most recent flow scenario data, cleaning up datasheet, etc.
 Files <- list.files('External_data/FlowScen/', pattern = "xlsx$")
 MaxFile <- max(Files)
 flowsheets <- excel_sheets(paste0('External_data/FlowScen/',MaxFile))
-flowsheet <- grep("Alternatives", flowsheets, value = TRUE)
+flowsheet <- grep("Alternatives", flowsheets, value = TRUE) #for pulling in flow alternatives
+scensheet <- grep("Desired", flowsheets, value = TRUE) #for pulling in desired scenarios sheet
+
+#pull in desired scenarios
+scen <- read_excel(paste0('External_data/FlowScen/',MaxFile), 
+                      sheet = scensheet, col_names = TRUE) %>%
+  filter(Use == 'Y') %>% 
+  mutate(Scenario = gsub("[^[:alnum:]]+", "", Scenario)) %>%
+  mutate(Scenario = tolower(Scenario)) %>%
+  pull(Scenario)
+
+#pull in flow alternatives
 kesFlow <- read_excel(paste0('External_data/FlowScen/',MaxFile), 
                       sheet = flowsheet, skip = 1, col_names = TRUE) 
 colnames(kesFlow) <- gsub("[^[:alnum:]]+", "", colnames(kesFlow))
@@ -56,42 +71,44 @@ kesFlow <- kesFlow %>%
   mutate(date = as.Date(as.numeric(date), origin = "1899-12-30")) %>%
   filter(!is.na(date)) %>%
   select(-contains("actual"), -contains("timeline")) %>%  # Exclude columns with 'Actual' and 'Timeline'
-  select_if(~ !all(is.na(.)))
-colnames(kesFlow) <- gsub("[^[:alnum:]]+", "", colnames(kesFlow))
+  select_if(~ !all(is.na(.))) %>% #Exlcude blank columns
+  gather(key = scenarios, value = flow, -date) %>% #gather for easier filtering
+  filter(scenarios %in% scen) %>% #filter for desired scenarios
+  spread(key = scenarios, value = flow) #spread back out for later use
 
-#kesFlow <- kesFlow %>% select(Date, all_of(scenarios)) %>% #selects only scenarios your interested in
- # mutate(Date = Date + 365)#temporary to test code
+########Import relevant fall-run redd dewatering data
 
 #import fall-run spawn info
 spawn <- read.csv('Model_inputs/spawn_timing.csv') %>% 
-  mutate(Date = as.Date(Day, origin = as.Date(paste0(yr,'-01-01')))) %>% #will need to adjust origin for 2024
-  rename('EmergDays' = 'EmergDate') %>% filter(Run == 'Fall')
+  mutate(Date = as.Date(Day, origin = as.Date(paste0(yr,'-01-01')))) %>% #converts Julian Day to date for current year
+  rename('EmergDays' = 'EmergDate') %>% #renaming for later use
+  filter(Run == 'Fall') #filtering just for fall-run
 
 #import gard look up table
-fall_lookup <- read.csv('Model_inputs/model_dewater_flows.csv') %>% 
-  rename('GardDewater' = 'Dewater', 'GardSpawn' = 'Spawn_Flows') %>% filter(Run == 'Fall')
+fall_lookup <- read.csv('Model_inputs/model_dewater_flows.csv') %>%
+  rename('GardDewater' = 'Dewater', 'GardSpawn' = 'Spawn_Flows') %>% 
+  filter(Run == 'Fall')
 
-#read in Redd Count data and date from most recent file
+########read in Redd Count data and date from most recent file
+
 count_pattern <- 'To date, unexpanded redd count' #set pattern for count cell to look for
 date_pattern <- 'Through' #set pattern for date cell to look for
-CountFiles <- list.files('External_data/ShallowRedds/ReddCount/', pattern = "xlsx$") #read in most recent excel WITH count data
-MaxCountFile <- max(CountFiles)
-sheetCount <- data.frame(excel_sheets(paste0('External_data/ShallowRedds/ReddCount/',MaxCountFile))) %>% 
+CountFiles <- list.files('External_data/ShallowRedds/ReddCount/', 
+                         pattern = "xlsx$") #list files with reporting tab in them
+MaxCountFile <- max(CountFiles) #single out the most recent file
+sheetCount <- data.frame(excel_sheets(paste0('External_data/ShallowRedds/ReddCount/', 
+                                             MaxCountFile))) %>% #read in most recent excel WITH count data
   rename('name' = 1) %>% 
-  filter(grepl('REPORTING', name, ignore.case = TRUE))
+  filter(grepl('REPORTING', name, ignore.case = TRUE)) #lists all excel sheets in the file
 
 #for Count data
-Count <- read_excel(paste0('External_data/ShallowRedds/ReddCount/',MaxCountFile),  sheet = sheetCount[1,1])
-reddCount <- round(as.numeric(Count[[(which(Count[, 2] == 'To date, unexpanded redd count') + 1), 2]]),0)
+Count <- read_excel(paste0('External_data/ShallowRedds/ReddCount/',MaxCountFile),  
+                    sheet = sheetCount[1,1]) #pull in sheet with count data
+reddCount <- round(as.numeric(Count[[(which(Count[, 2] == 'To date, unexpanded redd count') + 1), 2]]),0) #isolate count
 countDate <- format(as.Date(as.numeric(Count[[(which(Count[, 1] == 'Through') + 1), 1]]), 
-                            origin = "1899-12-30"), "%B %d, %Y")
-updatedReddInfoDate <- format(as.Date(gsub(".*?(\\d{4}-\\d{2}-\\d{2}).*", "\\1", MaxReddFile), format = "%Y-%m-%d"), "%B %d, %Y")
-flow_date <- Sys.Date()
-yr_exp <- 3 #this year's expected expansion number based on the linear relationship between yearly expansions vs recapture rate of tagged female salmon
+                            origin = "1899-12-30"), "%B %d, %Y") #isolate count data
+updatedReddInfoDate <- format(as.Date(gsub(".*?(\\d{4}-\\d{2}-\\d{2}).*", "\\1", MaxReddFile), format = "%Y-%m-%d"), "%B %d, %Y") #isolate most recent redd info date from file name
 
-#scenarios <- c("Alt.1c", "Alt.2e", "Alt.3m", "Alt.3r", "Alt.3s")
-
-#show_extra = TRUE
 ```
 
 This script constructs real-time winter-run redd dewatering estimates based on most recent data available from CDFW (`r updatedReddInfoDate`) for winter-run data and dewatering estimates from USFWS (2006; see citation). Data are also available in `r yr` Winter-run Data file.xls online at [calfish.org](https://gcc02.safelinks.protection.outlook.com/?url=https%3A%2F%2Fwww.calfish.org%2FProgramsData%2FConservationandManagement%2FCentralValleyMonitoring%2FCDFWUpperSacRiverBasinSalmonidMonitoring.aspx&data=05%7C01%7Clelliott%40usbr.gov%7C689ebb9a6c8243b4f96c08da90f5c542%7C0693b5ba4b184d7b9341f32f400a5494%7C0%7C0%7C637981682646098788%7CUnknown%7CTWFpbGZsb3d8eyJWIjoiMC4wLjAwMDAiLCJQIjoiV2luMzIiLCJBTiI6Ik1haWwiLCJXVCI6Mn0%3D%7C3000%7C%7C%7C&sdata=A1eQkWPxbkXxnzEvc2K8%2FTmslZ8H8zvxdks3%2F78Yrvw%3D&reserved=0).
@@ -99,11 +116,7 @@ This script constructs real-time winter-run redd dewatering estimates based on m
 Please note that all data are preliminary until data collection is finalized. Likewise, there are uncertainties with forecasts which may lead to changes in proposed operations.
 
 ```{r, echo = FALSE, include = FALSE}
-#pulling in real-time flow data for KES and KWK
-
-library(dplyr)
-library(tidyverse)
-library(lubridate)
+#####pulling in real-time flow data for KES and KWK
 
 # query parameters for SacPAS
 # calendar year
@@ -199,19 +212,21 @@ summary <- redd_model %>% group_by(Scenarios) %>%
   rename('Fall-run dewatered (%)' = 'Redds_lost')
 table2 <- setDT(as.data.frame(t(summary)), keep.rownames = TRUE, check.names = TRUE)
 names(table2) <- table2 %>% slice(1) %>% unlist()
-table2 <- table2 %>% slice(-1)
+table2 <- table2 %>% 
+  slice(-1) %>%
+  rename('Metric' = 1)
 ```
 
 # Current Winter-run Chinook Salmon Redd Count
 
 As of `r countDate`, the unexpanded redd count is **`r reddCount`** Winter-run redds. It is important to note that until data collection is completed for the year these are the **minimum** number of possible redds. The Winter-run number will always expand upon final analysis but gives an in-season guard rail of the minimum number of redds this year.
 
-Given that the number of Winter-run redds is always larger than the early season carcass counts, an expansion number based on historic data is multiplied by the carcass count to estimate the total number of redds for the season before the end of the season's final estimate is developed and the final redd count is known. These additional estimates of redd counts (shown in Table 1) help to inform decisions regarding possible redd dewatering.
+Given that the number of Winter-run redds is always larger than the early season carcass counts, an expansion number based on historic data is multiplied by the carcass count to estimate the total number of redds for the season before the end of the season's final estimate is developed and the final redd count is known. These additional estimates of redd counts (shown in Table 1) help to inform decisions regarding possible redd dewatering. However, expansion estimates have not been developed yet for the 2024 season and those in Table 1 are from the 2023 season.
 
 ```{r, echo = FALSE, message=FALSE}
 # create a table for population expansions
-pop_tab <- data.frame(Name = c("Current Count", "Average Expansion", paste0("Expected ", yr, " Expansion"), "Maximum Expansion", "Minimum Expansion"),
-                      Expansion = c(1, 1.98, yr_exp, 3.45, 1.25)
+pop_tab <- data.frame(Name = c("Current Count", paste0("Expected ", yr, " Expansion"), "Maximum Expansion", "Minimum Expansion"),
+                      Expansion = c(1, yr_exp, 3.45, 1.25)
                       
 )
 
@@ -229,7 +244,7 @@ knitr::kable(pop_tab,
 
 As of `r updatedReddInfoDate`, **`r nrow(subset(reddsAll, reddsAll$Status == "EMERGED"))`** Winter-run redds have **emerged** and **`r nrow(subset(reddsAll, reddsAll$Status == "DEWATERED"))`** have been **dewatered**. This leaves **`r nrow(subset(reddsAll, reddsAll$Status == "OK"))`** shallow water redds of concern.
 
-There is no real time data on fall-run redd counts. Estimates are predicted based on estimated dewatering percentages from USFWS (2006) and spring-run and fall-run spawn timing based on fresh female carcasses encountered by week from 2003 through 2022 and emergence timing were predicted from average water temperatures over the same time period. Fall-run dewatered redd estimates range from **`r min(summary[2])`** to **`r max(summary[2])`%**.
+There is no real time data on fall-run redd counts. Estimates are predicted based on estimated dewatering percentages from USFWS (2006) and spring-run and fall-run spawn timing based on fresh female carcasses encountered by week from 2003 through 2022. Emergence timing were predicted from average water temperatures over the same time period. Fall-run dewatered redd estimates range from **`r min(summary[2])`** to **`r max(summary[2])`%**.  Note that fall-run dewatering estimates are likely overestimated using the dewatering percentages from USFWS (2006), and likely do not reflect actual dewatering percentages and should only be used for comparative purposes between scenarios.  A comparative analysis between field and modeled dewatering percentages by Gosselin and Beer (2024) can be found here: https://www.cbr.washington.edu/sacramento/fishmodel/Note_on_Redd_Dewatering_Observed_v_Predicted.pdf.
 
 ```{r, echo = FALSE}
 library(lubridate)
@@ -281,11 +296,11 @@ pop_temp <- pop_tab %>% rename('Expansion' = 'Expansion Number') %>% filter(Expa
 
 for(i in 1:nrow(pop_temp)){
   temp <- pop_temp[i,'Expansion']
-  temp <- paste0('Winter-run Percent Lost (based on maximum expansion of ', temp,')')
+  temp <- paste0('Winter-run Percent Lost (expansion of ', temp,')')
   exp[i] <- temp
 }
 #creating row names for table
-Metric <- c("Avg Sept Flow (cfs)", "Avg Oct Flow (cfs)", "Sept-Feb Total Volume (TAF)", "Aug-Oct Total Volume (TAF)", "Winter-run Redds Dewatered", "Winter-run Percent Lost (based on current count)", paste0("Winter-run Percent Lost (based on this year's anticipated expansion of ", yr_exp, ")"),exp , "Winter-run Redds Dewatered (w/ 250 cfs buffer)", "Winter-run Percent Lost (w/ 250 cfs buffer)")
+Metric <- c("Avg Sept Flow (cfs)", "Avg Oct Flow (cfs)", "Sept-Feb Total Volume (TAF)", "Aug-Oct Total Volume (TAF)", "Winter-run Redds Dewatered", "Winter-run Percent Lost (current count)", paste0("Winter-run Percent Lost (expansion of ", yr_exp, ")"),exp , "Winter-run Redds Dewatered (250 cfs buffer)", "Winter-run Percent Lost (250 cfs buffer)")
 
 #creating the table using the row names
 table <- data.frame(Metric)
@@ -321,10 +336,6 @@ tableList <- tableList %>% append(
     after = length(tableList)
   )
 tableList <- tableList %>% append(
-    list(wr_pct_lost_198 = (colSums(filter(dewater, Buffer == 'NO')[, -1:-2], na.rm = TRUE)/(reddCount*1.98))*100),
-    after = length(tableList)
-  )
-tableList <- tableList %>% append(
     list(wr_pct_lost_345 = (colSums(filter(dewater, Buffer == 'NO')[, -1:-2], na.rm = TRUE)/(reddCount*3.45))*100),
     after = length(tableList)
   )
@@ -352,7 +363,9 @@ table <- bind_cols(Metric, temp_table) %>% rename('Metric' = 1)
 #adding fall-run dewatering to table
 table <- rbind(table, setNames(table2, names(table))) %>% 
   mutate_at(c(2:ncol(table)), as.numeric)
-table[,2:ncol(table)] <- round(table[,2:ncol(table)], digits = 2)
+# Separate the data into two parts: the first 5 rows and the remaining rows
+table[,2:ncol(table)] <- round(table[,2:ncol(table)], 2)
+# Print the modified table
 colnames(table) <- gsub("_cfs$", "", colnames(table))
 
 knitr::kable(table,
@@ -434,9 +447,13 @@ for(i in 1:num.in){
 	scenarioDesc[i,]=str_trim(str_split(worksheetSD[i,1],"=")[[1]])
 }
 
+scenarioDesc <- scenarioDesc %>% 
+  mutate(Scenario = gsub("[^[:alnum:]]+", "", Scenario)) %>%
+  mutate(Scenario = tolower(Scenario)) %>%
+  filter(Scenario %in% scen)
 #use scenarios defined in first chunk of code to filter the scenarioDesc dataframe
 
-#scenarios2 <- str_replace(scenarios, 'Alt.', '') #parse down to include just the scenario name
+
 
 #filter based on scenario name
 #scenarioDesc <- scenarioDesc %>% 
@@ -448,3 +465,5 @@ knitr::kable(scenarioDesc, caption = 'Description of scenarios being considered 
 # References
 
 Gard, Mark. 2006. Relationships between flow fluctuations and redd dewatering and juvenile stranding for Chinook Salmon and Steelhead in the Sacramento River between Kesewick Dam and Battle Creek. 94 pages.
+
+Gosselin, J.L. and W.N. Beer. 2024. Sacramento River Winter-run Chinook Salmon Redd Dewatering: a Note on Comparing Observed and Predicted. Central Valley Prediction and Assessment of Salmon (SacPas; https://www.cbr.washington.edu/sacramento/). Columbia Basin Research, School of Aquatic and Fishery Sciences, University of Washington.
