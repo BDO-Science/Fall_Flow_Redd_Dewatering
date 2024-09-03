@@ -1,9 +1,10 @@
 ---
-title: "PRELIMINARY DATA: Redd Dewatering Estimates for Keswick Fall Flow Scenarios"
+title: 'PRELIMINARY DATA: Redd Dewatering Estimates for Keswick Fall Flow Scenarios'
 author: "BDO Science Division"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
   pdf_document: default
+  word_document: default
   html_document: default
 ---
 
@@ -18,6 +19,7 @@ library(readxl)
 library(zoo)
 library(kableExtra)
 library(janitor)
+library(lubridate)
 
 #set desired scenarios for later filtering
 #scenarios <- c("Alt.1c", "Alt.2e", "Alt.3m", "Alt.3r", "Alt.3s") 
