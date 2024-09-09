@@ -3,9 +3,9 @@ title: 'PRELIMINARY DATA: Redd Dewatering Estimates for Keswick Fall Flow Scenar
 author: "BDO Science Division"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
+  word_document: default
   pdf_document: default
   html_document: default
-  word_document: default
 always_allow_html: true
 ---
 
@@ -116,6 +116,8 @@ updatedReddInfoDate <- format(as.Date(gsub(".*?(\\d{4}-\\d{2}-\\d{2}).*", "\\1",
 ```
 
 This script constructs real-time winter-run redd dewatering estimates based on most recent data available from CDFW (`r updatedReddInfoDate`) for winter-run data and dewatering estimates from USFWS (2006; see citation). Data are also available in `r yr` Winter-run Data file.xls online at [calfish.org](https://gcc02.safelinks.protection.outlook.com/?url=https%3A%2F%2Fwww.calfish.org%2FProgramsData%2FConservationandManagement%2FCentralValleyMonitoring%2FCDFWUpperSacRiverBasinSalmonidMonitoring.aspx&data=05%7C01%7Clelliott%40usbr.gov%7C689ebb9a6c8243b4f96c08da90f5c542%7C0693b5ba4b184d7b9341f32f400a5494%7C0%7C0%7C637981682646098788%7CUnknown%7CTWFpbGZsb3d8eyJWIjoiMC4wLjAwMDAiLCJQIjoiV2luMzIiLCJBTiI6Ik1haWwiLCJXVCI6Mn0%3D%7C3000%7C%7C%7C&sdata=A1eQkWPxbkXxnzEvc2K8%2FTmslZ8H8zvxdks3%2F78Yrvw%3D&reserved=0).
+
+This document is also now available on [SacPAS](https://www.cbr.washington.edu/sacramento/workgroups/usst.html#redd_dewater).  However, data on the SacPAS webpage may not immediately reflect data in the document as updates to the webpage with newest flow and redd data may be pending.
 
 Please note that all data are preliminary until data collection is finalized. Likewise, there are uncertainties with forecasts which may lead to changes in proposed operations.
 
@@ -248,7 +250,9 @@ if (knitr::is_html_output()) {
                caption = 'Estimated total number of Winter-run redds and resulting number of redds that represent 1% of the population. Estimated total redds are based on current count and expansion number representing average 2005-2022 expansion.')
 } else if (knitr::pandoc_to("docx")) {
   flextable::flextable(pop_tab) %>%
-    flextable::set_caption(caption = 'Estimated total number of Winter-run redds and resulting number of redds that represent 1% of the population. Estimated total redds are based on current count and expansion number representing average 2005-2022 expansion.')
+    flextable::set_caption(caption = 'Table 1. Estimated total number of Winter-run redds and resulting number of redds that represent 1% of the population. Estimated total redds are based on current count and expansion number representing average 2005-2022 expansion.') %>%
+    flextable::width(width = 1.5, unit = "in") %>%
+    flextable::font(font = 'Cambria', part = 'all')
 }
 ```
 
@@ -405,24 +409,34 @@ table <- rbind(table, setNames(table2, names(table))) %>%
 table[,2:ncol(table)] <- round(table[,2:ncol(table)], 2)
 # Print the modified table
 colnames(table) <- gsub("_cfs$", "", colnames(table))
+
+table_rounded <- table %>%
+  mutate(across(-Metric, 
+                ~ ifelse(row_number() <= 6, 
+                         format(round(.x, digits = 0), nsmall = 0, trim = TRUE), 
+                         round(.x, digits = 2))))
+
 #knitr::kable(table,
              #caption = paste0('Summary of various factors related to flow scenarios. Each scenario uses actual flow-to-date as of most current report and proposed flows for the remainder of the incubation period. Percentage of the population lost is based on the ',countDate,' count of ',reddCount,' Winter-run redds and updated redd counts may be available soon. See Scenario Descriptions file for additional information on each scenario.')) %>%
  # kable_styling(font_size = 8) %>%
   #column_spec(1, width = "4cm")
 # Dynamically render table based on output format
 if (knitr::is_html_output()) {
-  knitr::kable(table,
+  knitr::kable(table_rounded,
                caption = paste0('Summary of various factors related to flow scenarios. Each scenario uses actual flow-to-date as of most current report and proposed flows for the remainder of the incubation period. Percentage of the population lost is based on the ', countDate, ' count of ', reddCount, ' Winter-run redds and updated redd counts may be available soon. See Scenario Descriptions file for additional information on each scenario.')
                )
 } else if (knitr::is_latex_output()) {
-  knitr::kable(table,
+  knitr::kable(table_rounded,
                caption = paste0('Summary of various factors related to flow scenarios. Each scenario uses actual flow-to-date as of most current report and proposed flows for the remainder of the incubation period. Percentage of the population lost is based on the ', countDate, ' count of ', reddCount, ' Winter-run redds and updated redd counts may be available soon. See Scenario Descriptions file for additional information on each scenario.')
                ) %>%
     kable_styling(font_size = 8) %>%
     column_spec(1, width = "4cm")
 } else if (knitr::pandoc_to("docx")) {
-  flextable::flextable(table) %>%
-    flextable::set_caption(caption = paste0('Summary of various factors related to flow scenarios. Each scenario uses actual flow-to-date as of most current report and proposed flows for the remainder of the incubation period. Percentage of the population lost is based on the ', countDate, ' count of ', reddCount, ' Winter-run redds and updated redd counts may be available soon. See Scenario Descriptions file for additional information on each scenario.'))
+  flextable::flextable(table_rounded) %>%
+    flextable::set_caption(caption = paste0('Table 2. Summary of various factors related to flow scenarios. Each scenario uses actual flow-to-date as of most current report and proposed flows for the remainder of the incubation period. Percentage of the population lost is based on the ', countDate, ' count of ', reddCount, ' Winter-run redds and updated redd counts may be available soon. See Scenario Descriptions file for additional information on each scenario.')) %>%
+    flextable::width(width = 1, unit = "in") %>%
+    flextable::align(j = -1, align = 'center', part = 'all') %>%
+    flextable::font(font = 'Cambria', part = 'all')
 }
 ```
 
@@ -502,9 +516,11 @@ for(i in 1:num.in){
 }
 
 scenarioDesc <- scenarioDesc %>%
-  mutate(Scenario = gsub("[^[:alnum:]]+", "", Scenario)) %>%
-  mutate(Scenario = tolower(Scenario)) %>%
-  filter(Scenario %in% scen)
+  mutate(Key = gsub("[^[:alnum:]]+", "", Scenario)) %>%
+  mutate(Key = tolower(Key)) %>%
+  filter(Key %in% scen) %>%
+  mutate(Scenario = paste0(Scenario,' (',Key,')')) %>%
+  select(-Key)
 #use scenarios defined in first chunk of code to filter the scenarioDesc dataframe
 
 
@@ -514,15 +530,18 @@ scenarioDesc <- scenarioDesc %>%
   #filter(grepl(paste(toupper(scenarios2), collapse ='|'), toupper(Scenario)))
 if (knitr::is_html_output()) {
   knitr::kable(scenarioDesc, 
-               caption = 'Description of scenarios being considered and compared by the Upper Sacramento Scheduling Team.')
+               caption = 'Description of scenarios being considered and compared by the Upper Sacramento Scheduling Team. Scenario name includes the shorthand notion in parentheses for cross-referencing with graph and tables.')
 } else if (knitr::is_latex_output()) {
   knitr::kable(scenarioDesc, 
-               caption = 'Description of scenarios being considered and compared by the Upper Sacramento Scheduling Team.') %>%
+               caption = 'Description of scenarios being considered and compared by the Upper Sacramento Scheduling Team. Scenario name includes the shorthand notion in parentheses for cross-referencing with graph and tables.') %>%
     column_spec(1, width = "3cm") %>%
     column_spec(2, width = "13cm")
 } else if (knitr::pandoc_to("docx")) {
   flextable::flextable(scenarioDesc) %>%
-    flextable::set_caption(caption = 'Description of scenarios being considered and compared by the Upper Sacramento Scheduling Team.')
+    flextable::set_caption(caption = 'Table 3. Description of scenarios being considered and compared by the Upper Sacramento Scheduling Team.  Scenario name includes the shorthand notion in parentheses for cross-referencing with graph and tables.') %>%
+    flextable::width(1, width = 1.75, unit = "in") %>%
+    flextable::width(2, width = 5, unit = "in") %>%
+    flextable::font(font = 'Cambria', part = 'all')
 }
 ```
 # References
