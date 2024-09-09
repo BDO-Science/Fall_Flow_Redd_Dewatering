@@ -3,9 +3,9 @@ title: 'PRELIMINARY DATA: Redd Dewatering Estimates for Keswick Fall Flow Scenar
 author: "BDO Science Division"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
-  html_document: default
-  word_document: default
   pdf_document: default
+  word_document: default
+  html_document: default
 ---
 
 ```{r setup, echo=FALSE, include = FALSE}
