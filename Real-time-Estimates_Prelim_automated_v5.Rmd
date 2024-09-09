@@ -4,8 +4,9 @@ author: "BDO Science Division"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
   pdf_document: default
-  word_document: default
   html_document: default
+  word_document: default
+always_allow_html: true
 ---
 
 ```{r setup, echo=FALSE, include = FALSE}
@@ -60,21 +61,22 @@ scensheet <- grep("Desired", flowsheets, value = TRUE) #for pulling in desired s
 scen <- read_excel(paste0('External_data/FlowScen/',MaxFile), 
                       sheet = scensheet, col_names = TRUE) %>%
   filter(Use == 'Y') %>% 
-  mutate(Scenario = gsub("[^[:alnum:]]+", "", Scenario)) %>%
-  mutate(Scenario = tolower(Scenario)) %>%
-  pull(Scenario)
+  clean_names() %>%
+  mutate(scenario = gsub("[^[:alnum:]]+", "", scenario)) %>%
+  mutate(scenario = tolower(scenario)) %>%
+  pull(scenario)
 
 #pull in flow alternatives
 kesFlow <- read_excel(paste0('External_data/FlowScen/',MaxFile), 
-                      sheet = flowsheet, skip = 1, col_names = TRUE) 
-colnames(kesFlow) <- gsub("[^[:alnum:]]+", "", colnames(kesFlow))
-kesFlow <- kesFlow %>%
-  clean_names() %>%
-  mutate(date = as.Date(as.numeric(date), origin = "1899-12-30")) %>%
-  filter(!is.na(date)) %>%
-  select(-contains("actual"), -contains("timeline")) %>%  # Exclude columns with 'Actual' and 'Timeline'
+                      sheet = flowsheet, skip = 1, col_names = TRUE) %>%
+  mutate(Date = as.Date(as.numeric(Date), origin = "1899-12-30")) %>%
+  filter(!is.na(Date)) %>%
+  select(-contains("Actual"), -contains("Timeline")) %>%  # Exclude columns with 'Actual' and 'Timeline'
   select_if(~ !all(is.na(.))) %>% #Exlcude blank columns
-  gather(key = scenarios, value = flow, -date) %>% #gather for easier filtering
+  gather(key = scenarios, value = flow, -Date) %>% #gather for easier filtering
+  clean_names() %>%
+  mutate(scenarios = gsub("[^[:alnum:]]+", "", scenarios)) %>%
+  mutate(scenarios = tolower(scenarios)) %>%
   filter(scenarios %in% scen) %>% #filter for desired scenarios
   spread(key = scenarios, value = flow) #spread back out for later use
 
@@ -227,7 +229,7 @@ Given that the number of Winter-run redds is always larger than the early season
 
 ```{r, echo = FALSE, message=FALSE}
 # create a table for population expansions
-pop_tab <- data.frame(Name = c("Current Count", "Mean Expansion"),
+pop_tab <- data.frame(Name = c("Current Count", "Anticipated Expansion"),
                       Expansion = c(1,2)
                       
 )
@@ -238,8 +240,16 @@ pop_tab <- pop_tab %>%
   rename("Expansion Number" = Expansion,
     "Total Redds" = Redds)
 
-knitr::kable(pop_tab,
-             caption = 'Estimated total number of Winter-run redds and resulting number of redds that represent 1% of the population. Estimated total redds are based on current count and expansion number representing average 2005-2022 expansion.')
+if (knitr::is_html_output()) {
+  knitr::kable(pop_tab,
+               caption = 'Estimated total number of Winter-run redds and resulting number of redds that represent 1% of the population. Estimated total redds are based on current count and expansion number representing average 2005-2022 expansion.')
+} else if (knitr::is_latex_output()) {
+  knitr::kable(pop_tab,
+               caption = 'Estimated total number of Winter-run redds and resulting number of redds that represent 1% of the population. Estimated total redds are based on current count and expansion number representing average 2005-2022 expansion.')
+} else if (knitr::pandoc_to("docx")) {
+  flextable::flextable(pop_tab) %>%
+    flextable::set_caption(caption = 'Estimated total number of Winter-run redds and resulting number of redds that represent 1% of the population. Estimated total redds are based on current count and expansion number representing average 2005-2022 expansion.')
+}
 ```
 
 ## Chinook Salmon Dewatered Redd Estimates
@@ -395,14 +405,30 @@ table <- rbind(table, setNames(table2, names(table))) %>%
 table[,2:ncol(table)] <- round(table[,2:ncol(table)], 2)
 # Print the modified table
 colnames(table) <- gsub("_cfs$", "", colnames(table))
-
-knitr::kable(table,
-             caption = paste0('Average September and October Keswick (KES) Flow in cfs, total water volume of each alternative for August through September and September through February in TAF, anticipated End of Septemeber storage based on August 90% exceedence forecast in TAF, estimated numbers of SRWC redds dewatered, and percent of population that would be lost under each of the proposed alternatives. KES Flow data uses actual flow-to-date as of ',format(max(allflows$Date), '%B %d, %Y'),' and proposed flows for the remainder of the incubation period. Redd dewatering is considered at the actual or estimated dewatering flow and with a 250 cfs buffer applied to the actual/estimated dewatering flow. Percentage of the population lost is based on the ',countDate,' count of ',reddCount,' Winter-run redds and updated redd counts may be available soon. See Scenario Descriptions file for additional information on each scenario.'))
+#knitr::kable(table,
+             #caption = paste0('Summary of various factors related to flow scenarios. Each scenario uses actual flow-to-date as of most current report and proposed flows for the remainder of the incubation period. Percentage of the population lost is based on the ',countDate,' count of ',reddCount,' Winter-run redds and updated redd counts may be available soon. See Scenario Descriptions file for additional information on each scenario.')) %>%
+ # kable_styling(font_size = 8) %>%
+  #column_spec(1, width = "4cm")
+# Dynamically render table based on output format
+if (knitr::is_html_output()) {
+  knitr::kable(table,
+               caption = paste0('Summary of various factors related to flow scenarios. Each scenario uses actual flow-to-date as of most current report and proposed flows for the remainder of the incubation period. Percentage of the population lost is based on the ', countDate, ' count of ', reddCount, ' Winter-run redds and updated redd counts may be available soon. See Scenario Descriptions file for additional information on each scenario.')
+               )
+} else if (knitr::is_latex_output()) {
+  knitr::kable(table,
+               caption = paste0('Summary of various factors related to flow scenarios. Each scenario uses actual flow-to-date as of most current report and proposed flows for the remainder of the incubation period. Percentage of the population lost is based on the ', countDate, ' count of ', reddCount, ' Winter-run redds and updated redd counts may be available soon. See Scenario Descriptions file for additional information on each scenario.')
+               ) %>%
+    kable_styling(font_size = 8) %>%
+    column_spec(1, width = "4cm")
+} else if (knitr::pandoc_to("docx")) {
+  flextable::flextable(table) %>%
+    flextable::set_caption(caption = paste0('Summary of various factors related to flow scenarios. Each scenario uses actual flow-to-date as of most current report and proposed flows for the remainder of the incubation period. Percentage of the population lost is based on the ', countDate, ' count of ', reddCount, ' Winter-run redds and updated redd counts may be available soon. See Scenario Descriptions file for additional information on each scenario.'))
+}
 ```
 
 
 
-```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.cap = 'Actual or estimated emergence dates of SRWC redds and actual or estimated dewatering flow for the September-October estimated redd emergence dates as compared to Keswick flow (in cfs) of proposed management alternatives. Points represent dewatered (De), emerged (Em), or remaining (Re) redds. Numbers inside of points indicate how many redds share that estimated emergence date and actual/estimated dewatering flow. Points that fall above/to the right of a flow alternative line are expected to be dewatered given that management alternative is followed. Points that fall below/to the left of/on a flow alternative line are not expected to be dewatered, given that management alternative is followed. Shaded gray box shows period of real-time flow data; dashed black line equals KWK gauge flow and solid black line equals KES flow (from [SacPas](https://www.cbr.washington.edu/sacramento/data/query_river_table.html)).'}
+```{r, echo=FALSE, message=FALSE, warning=FALSE, fig.cap = 'Actual or estimated emergence dates of SRWC redds and actual or estimated dewatering flow for the September-October estimated redd emergence dates as compared to Keswick flow (in cfs) of proposed management alternatives. Points represent dewatered (De), emerged (Em), or remaining (Re) redds. Numbers inside of points indicate how many redds share that estimated emergence date and actual/estimated dewatering flow. Points that fall above/to the right of a flow alternative line are expected to be dewatered given that management alternative is followed. Points that fall below/to the left of/on a flow alternative line are not expected to be dewatered, given that management alternative is followed. Shaded gray box shows period of real-time flow data; dashed black line equals KWK gauge flow and solid black line equals KES flow (from [SacPas](https://www.cbr.washington.edu/sacramento/data/query_river_table.html)).', fig.dim = c(8,5)}
 
 #, fig.dim = c(8,5)
 reddsDat <- reddsAll
@@ -475,7 +501,7 @@ for(i in 1:num.in){
 	scenarioDesc[i,]=str_trim(str_split(worksheetSD[i,1],"=")[[1]])
 }
 
-scenarioDesc <- scenarioDesc %>% 
+scenarioDesc <- scenarioDesc %>%
   mutate(Scenario = gsub("[^[:alnum:]]+", "", Scenario)) %>%
   mutate(Scenario = tolower(Scenario)) %>%
   filter(Scenario %in% scen)
@@ -486,9 +512,18 @@ scenarioDesc <- scenarioDesc %>%
 #filter based on scenario name
 #scenarioDesc <- scenarioDesc %>% 
   #filter(grepl(paste(toupper(scenarios2), collapse ='|'), toupper(Scenario)))
-knitr::kable(scenarioDesc, caption = 'Description of scenarios being considered and compared by the Upper Sacramento Scheduling Team.') %>%
-  column_spec(1, width = "2cm") %>%
-  column_spec(2, width = "14cm")
+if (knitr::is_html_output()) {
+  knitr::kable(scenarioDesc, 
+               caption = 'Description of scenarios being considered and compared by the Upper Sacramento Scheduling Team.')
+} else if (knitr::is_latex_output()) {
+  knitr::kable(scenarioDesc, 
+               caption = 'Description of scenarios being considered and compared by the Upper Sacramento Scheduling Team.') %>%
+    column_spec(1, width = "3cm") %>%
+    column_spec(2, width = "13cm")
+} else if (knitr::pandoc_to("docx")) {
+  flextable::flextable(scenarioDesc) %>%
+    flextable::set_caption(caption = 'Description of scenarios being considered and compared by the Upper Sacramento Scheduling Team.')
+}
 ```
 # References
 
