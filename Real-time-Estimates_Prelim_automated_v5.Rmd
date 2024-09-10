@@ -3,9 +3,9 @@ title: 'PRELIMINARY DATA: Redd Dewatering Estimates for Keswick Fall Flow Scenar
 author: "BDO Science Division"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
-  word_document: default
-  pdf_document: default
   html_document: default
+  pdf_document: default
+  word_document: default
 always_allow_html: true
 ---
 
@@ -22,8 +22,6 @@ library(kableExtra)
 library(janitor)
 library(lubridate)
 
-#set desired scenarios for later filtering
-#scenarios <- c("Alt.1c", "Alt.2e", "Alt.3m", "Alt.3r", "Alt.3s") 
 
 #this function will convert the character values (from xlsx format of numbers with commas) to numeric class values
 setClass("num.with.commas")
@@ -48,7 +46,7 @@ redds <- read_excel(MaxReddFile,  sheet = reddsheet, #read in shallow redd file 
   rename('Born.on.Date' = 1, 'Estimated.Date.of.Emergence' = 2, 'ACTUAL.or.ESTIMATED..DEWATER.FLOW' = 4) %>%
   mutate_at(1:2, as.Date)#minor cleaning
 
-reddsAll <- redds
+reddsAll <- redds #putting in a spare dataframe or later use
 
 ########Read in most recent flow scenario data, cleaning up datasheet, etc.
 Files <- list.files('External_data/FlowScen/', pattern = "xlsx$")
@@ -93,7 +91,7 @@ fall_lookup <- read.csv('Model_inputs/model_dewater_flows.csv') %>%
   rename('GardDewater' = 'Dewater', 'GardSpawn' = 'Spawn_Flows') %>% 
   filter(Run == 'Fall')
 
-########read in Redd Count data and date from most recent file
+########read in Redd Count data and date from most recent file with that info (different folder than standard redd files)
 
 count_pattern <- 'To date, unexpanded redd count' #set pattern for count cell to look for
 date_pattern <- 'Through' #set pattern for date cell to look for
@@ -103,11 +101,12 @@ MaxCountFile <- max(CountFiles) #single out the most recent file
 sheetCount <- data.frame(excel_sheets(paste0('External_data/ShallowRedds/ReddCount/', 
                                              MaxCountFile))) %>% #read in most recent excel WITH count data
   rename('name' = 1) %>% 
-  filter(grepl('REPORTING', name, ignore.case = TRUE)) #lists all excel sheets in the file
+  filter(grepl('REPORTING', name, ignore.case = TRUE)) %>%
+  pull(name)
 
 #for Count data
 Count <- read_excel(paste0('External_data/ShallowRedds/ReddCount/',MaxCountFile),  
-                    sheet = sheetCount[1,1]) #pull in sheet with count data
+                    sheet = sheetCount) #pull in sheet with count data
 reddCount <- round(as.numeric(Count[[(which(Count[, 2] == 'To date, unexpanded redd count') + 1), 2]]),0) #isolate count
 countDate <- format(as.Date(as.numeric(Count[[(which(Count[, 1] == 'Through') + 1), 1]]), 
                             origin = "1899-12-30"), "%B %d, %Y") #isolate count data
@@ -141,8 +140,8 @@ kwkFlowData = read.csv(queryKWKflow) %>% slice(1:(n()-3))
 queryKESflow=paste("https://www.cbr.washington.edu/sacramento/data/php/rpt/mg.php?mgconfig=river&loc[]=KES&data[]=ReservoirOutflow&outputFormat=",outputFormat,"&year[]=",queryYear,"&startdate=",querySD,"&enddate=",queryED, sep="")
 kesFlowData = read.csv(queryKESflow) %>% slice(1:(n()-3))
 
-allflows <- rbind(kwkFlowData, kesFlowData)
-allflows <- allflows %>% 
+allflows <- rbind(kwkFlowData, kesFlowData) #bind gages together
+allflows <- allflows %>% #minor cleaning for date and column names
   mutate(Date = as.Date(paste0(mm.dd,'-',year), format = '%m-%d-%Y')) %>% 
   rename('Flow' = 'value') %>% select(Date, Gage = location, Flow)
 ```
@@ -206,16 +205,20 @@ redd_model <- kesFlowReal %>%
     }
   })) %>%
   mutate(Boards = if_else(month(date) < 11, 'in', 'out')) 
+
+#rounding spawning flows and dewatering flows (minimum flows) to nearest flow value in Gard Lookup
 redd_model <- redd_model %>%
   mutate(GardSpawn = sapply(redd_model$Spawn_Flows, round_to_nearest, fall_lookup$GardSpawn)) %>%
   mutate(GardDewater = sapply(redd_model$Dewater, round_to_nearest, fall_lookup$GardDewater)) %>%
   left_join(fall_lookup, by = c('GardDewater', 'GardSpawn', 'Boards')) %>%
   mutate(Prop_dewater = if_else(is.na(Prop_dewater), 0, Prop_dewater)) %>%
-  mutate(TotalDewater = Prop * Prop_dewater)
+  mutate(TotalDewater = Prop * Prop_dewater) #multiplying proportion dewatered by the proportion spawning
 
-summary <- redd_model %>% group_by(Scenarios) %>% 
+summary <- redd_model %>% group_by(Scenarios) %>% #summarize total dewatering by Scenario
   summarize(Redds_lost = round((sum(TotalDewater)*100), 1)) %>%
   rename('Fall-run dewatered (%)' = 'Redds_lost')
+
+#manipulating summary table for later binding to another summary table.
 table2 <- setDT(as.data.frame(t(summary)), keep.rownames = TRUE, check.names = TRUE)
 names(table2) <- table2 %>% slice(1) %>% unlist()
 table2 <- table2 %>% 
@@ -289,8 +292,8 @@ for(i in 1:nrow(redds2)){
   flowList[[i]] <- minflow
 }
 
-test2 <- cbind(flowList)
-dewater <- cbind(redds2, test2)
+tempRedds <- cbind(flowList)
+dewater <- cbind(redds2, tempRedds)
 dewater <- dewater %>% mutate(Dewater = if_else(flowList <= ACTUAL.or.ESTIMATED..DEWATER.FLOW, 1, 0)) %>%
   mutate(Dewater_Buffer = ACTUAL.or.ESTIMATED..DEWATER.FLOW + 250) %>%
   mutate(Dewatered_Buffer = if_else(flowList <= Dewater_Buffer, 1, 0)) %>%
@@ -423,17 +426,17 @@ table_rounded <- table %>%
 # Dynamically render table based on output format
 if (knitr::is_html_output()) {
   knitr::kable(table_rounded,
-               caption = paste0('Summary of various factors related to flow scenarios. Each scenario uses actual flow-to-date as of most current report and proposed flows for the remainder of the incubation period. Percentage of the population lost is based on the ', countDate, ' count of ', reddCount, ' Winter-run redds and updated redd counts may be available soon. See Scenario Descriptions file for additional information on each scenario.')
+               caption = paste0('Summary of water volume and winter-run and fall-run dewatering estimates related to flow scenarios. Each scenario uses actual flow-to-date as of most current report and proposed flows for the remainder of the incubation period. Percentage of the population lost is based on the ', countDate, ' count of ', reddCount, ' Winter-run redds. See Scenario Descriptions file for additional information on each scenario.')
                )
 } else if (knitr::is_latex_output()) {
   knitr::kable(table_rounded,
-               caption = paste0('Summary of various factors related to flow scenarios. Each scenario uses actual flow-to-date as of most current report and proposed flows for the remainder of the incubation period. Percentage of the population lost is based on the ', countDate, ' count of ', reddCount, ' Winter-run redds and updated redd counts may be available soon. See Scenario Descriptions file for additional information on each scenario.')
+               caption = paste0('Summary of water volume and winter-run and fall-run dewatering estimates related to flow scenarios. Each scenario uses actual flow-to-date as of most current report and proposed flows for the remainder of the incubation period. Percentage of the population lost is based on the ', countDate, ' count of ', reddCount, ' Winter-run redds. See Scenario Descriptions file for additional information on each scenario.')
                ) %>%
     kable_styling(font_size = 8) %>%
     column_spec(1, width = "4cm")
 } else if (knitr::pandoc_to("docx")) {
   flextable::flextable(table_rounded) %>%
-    flextable::set_caption(caption = paste0('Table 2. Summary of various factors related to flow scenarios. Each scenario uses actual flow-to-date as of most current report and proposed flows for the remainder of the incubation period. Percentage of the population lost is based on the ', countDate, ' count of ', reddCount, ' Winter-run redds and updated redd counts may be available soon. See Scenario Descriptions file for additional information on each scenario.')) %>%
+    flextable::set_caption(caption = paste0('Table 2. Summary of water volume and winter-run and fall-run dewatering estimates related to flow scenarios. Each scenario uses actual flow-to-date as of most current report and proposed flows for the remainder of the incubation period. Percentage of the population lost is based on the ', countDate, ' count of ', reddCount, ' Winter-run redds. See Scenario Descriptions file for additional information on each scenario.')) %>%
     flextable::width(width = 1, unit = "in") %>%
     flextable::align(j = -1, align = 'center', part = 'all') %>%
     flextable::font(font = 'Cambria', part = 'all')
@@ -508,7 +511,7 @@ worksheetSD=worksheetSD[!is.na(worksheetSD[,1]),]
 # split the Alts from the descriptions
 num.in = dim(worksheetSD)[1]
 scenarioDesc=data.frame(matrix(nrow=num.in,ncol=2))
-colnames(scenarioDesc)=c("Scenario","Descripion")
+colnames(scenarioDesc)=c("Scenario","Description")
 # loop through dataframe, split original dataframe column 1 on literal "=" characters and trim leading and trailing space, create new dataframe with 2 columns "Scenario" and "Description"
 # populates scenarioDesc dataframe
 for(i in 1:num.in){
@@ -546,6 +549,6 @@ if (knitr::is_html_output()) {
 ```
 # References
 
-Gard, Mark. 2006. Relationships between flow fluctuations and redd dewatering and juvenile stranding for Chinook Salmon and Steelhead in the Sacramento River between Kesewick Dam and Battle Creek. 94 pages.
+Gard, Mark. 2006. Relationships between flow fluctuations and redd dewatering and juvenile stranding for Chinook Salmon and Steelhead in the Sacramento River between Keswick Dam and Battle Creek. 94 pages.
 
 Gosselin, J.L. and W.N. Beer. 2024. Sacramento River Winter-run Chinook Salmon Redd Dewatering: a Note on Comparing Observed and Predicted. Central Valley Prediction and Assessment of Salmon (SacPas; https://www.cbr.washington.edu/sacramento/). Columbia Basin Research, School of Aquatic and Fishery Sciences, University of Washington.
