@@ -5,8 +5,11 @@ library(plotly)
 library(htmlwidgets)
 
 files <- list.files(path = 'External_data/ShallowRedds', pattern = 'xlsx')
+maxFile <- max(files)
+redds <- read_excel(paste0('External_data/ShallowRedds/',maxFile), sheet = 'SACPAS Shallow Redds')
 
-redds <- read_excel(paste0('External_data/ShallowRedds/',max(files)), sheet = 'SACPAS Shallow Redds')
+reddDate <- format(as.Date(gsub(".*?(\\d{4}-\\d{2}-\\d{2}).*", "\\1", maxFile), format = "%Y-%m-%d"), "%B %d, %Y")
+title <- paste0('Shallow water redd monitoring as of ',reddDate)
 
 redds2 <- redds %>%
   group_by(Redd_ID) %>%
@@ -37,7 +40,7 @@ depth <- ggplot(redds2, aes(x = measurement_date, y = measurement_depth, group =
   geom_line(linetype = 'dashed', color = '#666666') +
   #geom_smooth(aes(color = as.factor(status)), method = "loess", span = 0.6, se = FALSE) +
   facet_wrap(~ Redd_ID, nrow = 4) +
-  labs(x = 'Date', y = 'Water Depth (in)', fill = 'Risk') +
+  labs(x = 'Date', y = 'Water Depth (in)', fill = 'Risk', title = title) +
   theme_bw() +
   theme(legend.position = 'bottom', 
         axis.text.x = element_text(size = 8),
@@ -48,10 +51,10 @@ depth <- ggplot(redds2, aes(x = measurement_date, y = measurement_depth, group =
   scale_x_date(date_breaks = '1 months', date_labels = '%b') +
  # scale_linetype_manual(name = '', values = c('dotted', 'longdash'), labels = c('Dewatering Flow (CFS)', 'KWK Flows (CFS)')) +
   scale_fill_manual(values = c('0' = 'NA', '1' = '#990000', '2' = '#FF9900', '3' = '#CC33CC'), 
-                    labels = c('0' = 'Minimal', '1' = 'Dewater Risk', '2' = 'Trampled', '3' = 'Dewater Risk/Trampled')) +
+                    labels = c('0' = 'Minimal', '1' = 'Dewater Risk (<= 10 in)', '2' = 'Trampled', '3' = 'Dewater Risk/Trampled')) +
   guides(fill = guide_legend(override.aes = list(alpha = 1)))
 depth
-ggsave(plot = depth, filename = 'shallow_red_depths.png', width = 9, height = 6.5, units = 'in')
+ggsave(plot = depth, filename = 'shallow_redd_depths.png', width = 9, height = 6.5, units = 'in')
 
 
 interactive_plot <- ggplot(redds2, aes(x = measurement_date, y = measurement_depth, group = Redd_ID)) + 
@@ -64,7 +67,7 @@ interactive_plot <- ggplot(redds2, aes(x = measurement_date, y = measurement_dep
                               "<br>Comments", comments)), size = 2)+
   geom_line(linetype = 'dashed', color = '#666666', alpha = 0.7) +
   facet_wrap(~ Redd_ID, nrow = 4) +
-  labs(x = 'Date', y = 'Water Depth (in)', color = 'Depth (in)') +
+  labs(x = 'Date', y = 'Water Depth (in)', color = 'Depth (in)', title = title) +
   theme_bw() +
   theme(legend.position = 'bottom',
         axis.title.y = element_text(margin = margin(r = 8)),
@@ -80,7 +83,7 @@ interactive_plot
 # Convert ggplot to plotly
 interactive <- ggplotly(interactive_plot, tooltip = c("text")) %>%
   layout(
-    margin = list(l = 60, r = 40, b = 60, t = 40),  # Adjust left, right, bottom, top margins
+    margin = list(l = 60, r = 40, b = 60, t = 55),  # Adjust left, right, bottom, top margins
     autosize = TRUE  # Allow the plot to automatically resize
   )
 interactive
