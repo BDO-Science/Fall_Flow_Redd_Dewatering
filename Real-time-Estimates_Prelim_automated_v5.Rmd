@@ -131,7 +131,8 @@ queryYear=yr
 # query dates can be empty string "" or explicit "mm/dd" (value will be NA for future dates or missing dates)
 # empty string for end date will result in data through most recent date in database for given year
 querySD="8/1"
-queryED= paste0(month(Sys.Date()),'/',day(Sys.Date()-1))
+queryED=Sys.Date()-1
+queryED= paste0(month(queryED),'/',day(queryED))
 outputFormat="csvSingle"
 
 # KWK river flow data from SacPAS
