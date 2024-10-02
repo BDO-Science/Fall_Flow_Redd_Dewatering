@@ -3,8 +3,8 @@ title: 'PRELIMINARY DATA: Redd Dewatering Estimates for Keswick Fall Flow Scenar
 author: "BDO Science Division"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
-  word_document: default
   html_document: default
+  word_document: default
   pdf_document: default
 always_allow_html: true
 ---
@@ -112,7 +112,10 @@ Count <- read_excel(paste0('External_data/ShallowRedds/ReddCount/',MaxCountFile)
 reddCount <- round(as.numeric(Count[[(which(Count[, 2] == 'To date, unexpanded redd count') + 1), 2]]),0) #isolate count
 countDate <- format(as.Date(as.numeric(Count[[(which(Count[, 1] == 'Through') + 1), 1]]), 
                             origin = "1899-12-30"), "%B %d, %Y") #isolate count data
-updatedReddInfoDate <- format(as.Date(gsub(".*?(\\d{4}-\\d{2}-\\d{2}).*", "\\1", MaxReddFile), format = "%Y-%m-%d"), "%B %d, %Y") #isolate most recent redd info date from file name
+#updatedReddInfoDate <- format(as.Date(gsub(".*?(\\d{4}-\\d{2}-\\d{2}).*", "\\1", MaxReddFile), format = "%Y-%m-%d"), "%B %d, %Y") #isolate most recent redd info date from file name
+
+updatedReddInfoDate <- read_excel(MaxReddFile, sheet = 'SACPAS Shallow Redds') %>%
+  summarize(max(measurement_date)) %>% pull() #isolate most recent redd info date from file name
 
 ```
 
@@ -271,7 +274,7 @@ if (knitr::is_html_output()) {
 
 ## Chinook Salmon Dewatered Redd Estimates
 
-As of `r updatedReddInfoDate`, **`r nrow(subset(reddsAll, reddsAll$Status == "EMERGED"))`** Winter-run redds have **emerged** and **`r nrow(subset(reddsAll, reddsAll$Status == "DEWATERED"))`** have been **dewatered**. This leaves **`r nrow(subset(reddsAll, reddsAll$Status == "OK"))`** shallow water redds of concern.
+As of `r format(updatedReddInfoDate, '%B %d, %Y')`, **`r nrow(subset(reddsAll, reddsAll$Status == "EMERGED"))`** Winter-run redds have **emerged** and **`r nrow(subset(reddsAll, reddsAll$Status == "DEWATERED"))`** have been **dewatered**. This leaves **`r nrow(subset(reddsAll, reddsAll$Status == "OK"))`** shallow water redds of concern.
 
 There is no real time data on fall-run redd counts. Estimates are predicted based on estimated dewatering percentages from USFWS (2006) and spring-run and fall-run spawn timing based on fresh female carcasses encountered by week from 2003 through 2022. Emergence timing were predicted from average water temperatures over the same time period. Fall-run dewatered redd estimates range from **`r min(summary[2])`** to **`r max(summary[2])`%**.  Note that fall-run dewatering estimates are likely overestimated using the dewatering percentages from USFWS (2006), and likely do not reflect actual dewatering percentages and should only be used for comparative purposes between scenarios.  A comparative analysis between field and modeled dewatering percentages by Gosselin and Beer (2024) can be found here: https://www.cbr.washington.edu/sacramento/fishmodel/Note_on_Redd_Dewatering_Observed_v_Predicted.pdf.
 

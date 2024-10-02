@@ -8,7 +8,8 @@ files <- list.files(path = 'External_data/ShallowRedds', pattern = 'xlsx')
 maxFile <- max(files)
 redds <- read_excel(paste0('External_data/ShallowRedds/',maxFile), sheet = 'SACPAS Shallow Redds')
 
-reddDate <- format(as.Date(gsub(".*?(\\d{4}-\\d{2}-\\d{2}).*", "\\1", maxFile), format = "%Y-%m-%d"), "%B %d, %Y")
+reddDate <- redds %>%
+  summarize(format(max(measurement_date), '%B %d, %Y')) %>% pull()
 title <- paste0('Shallow water redd monitoring as of ',reddDate)
 
 redds2 <- redds %>%
@@ -33,11 +34,18 @@ redds2 <- redds %>%
   ungroup() %>%
   mutate(days_to_emerg = difftime(Estimated_Emergence, measurement_date, unit = 'days'))
 
-depth <- ggplot(redds2, aes(x = measurement_date, y = measurement_depth, group = Redd_ID)) + 
-  geom_rect(aes(fill=factor(Risk)), xmin = -Inf,xmax = Inf,
-            ymin = -Inf,ymax = Inf, alpha=0.05, color = 'black') +
-  geom_point(fill = '#999999') +
-  geom_line(linetype = 'dashed', color = '#666666') +
+risk <- redds2 %>%
+  group_by(Redd_ID) %>%
+  summarize(Risk = max(Risk))
+depth <- ggplot() + 
+  geom_rect(risk, mapping = aes(fill=factor(Risk)), xmin = -Inf,xmax = Inf,
+            ymin = -Inf,ymax = Inf, alpha=0.25, color = 'black') +
+  geom_point(redds2, 
+             mapping = aes(x = measurement_date, y = measurement_depth, group = Redd_ID), 
+             fill = '#999999') +
+  geom_line(redds2, 
+            mapping = aes(x = measurement_date, y = measurement_depth, group = Redd_ID),
+            linetype = 'dashed', color = '#666666') +
   #geom_smooth(aes(color = as.factor(status)), method = "loess", span = 0.6, se = FALSE) +
   facet_wrap(~ Redd_ID, nrow = 4) +
   labs(x = 'Date', y = 'Water Depth (in)', fill = 'Risk', title = title) +
