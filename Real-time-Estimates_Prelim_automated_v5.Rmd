@@ -83,7 +83,7 @@ kesFlow <- kesFlowTemp %>%
 ########Import relevant fall-run redd dewatering data
 
 #import fall-run spawn info
-spawn <- read.csv('Model_inputs/spawn_timing.csv') %>% 
+spawn <- read.csv('Model_inputs/spawn_timing_v2.csv') %>% 
   mutate(Date = as.Date(Day, origin = as.Date(paste0(yr,'-01-01')))) %>% #converts Julian Day to date for current year
   rename('EmergDays' = 'EmergDate') %>% #renaming for later use
   filter(Run == 'Fall') #filtering just for fall-run
@@ -276,7 +276,7 @@ if (knitr::is_html_output()) {
 
 As of `r format(updatedReddInfoDate, '%B %d, %Y')`, **`r nrow(subset(reddsAll, reddsAll$Status == "EMERGED"))`** Winter-run redds have **emerged** and **`r nrow(subset(reddsAll, reddsAll$Status == "DEWATERED"))`** have been **dewatered**. This leaves **`r nrow(subset(reddsAll, reddsAll$Status == "OK"))`** shallow water redds of concern.
 
-There is no real time data on fall-run redd counts. Estimates are predicted based on estimated dewatering percentages from USFWS (2006) and spring-run and fall-run spawn timing based on fresh female carcasses encountered by week from 2003 through 2022. Emergence timing were predicted from average water temperatures over the same time period. Fall-run dewatered redd estimates range from **`r min(summary[2])`** to **`r max(summary[2])`%**.  Note that fall-run dewatering estimates are likely overestimated using the dewatering percentages from USFWS (2006), and likely do not reflect actual dewatering percentages and should only be used for comparative purposes between scenarios.  A comparative analysis between field and modeled dewatering percentages by Gosselin and Beer (2024) can be found here: https://www.cbr.washington.edu/sacramento/fishmodel/Note_on_Redd_Dewatering_Observed_v_Predicted.pdf.
+There is no real time data on fall-run redd counts. Estimates are predicted based on estimated dewatering percentages from USFWS (2006) and spring-run and fall-run spawn timing based on fresh female carcasses encountered by week from 2003 through 2023. Emergence timing were predicted from water temperatures below Keswick in 2018 which most closely aligns with 2024 operations targeting 53.5 F at Clear Creek. Fall-run dewatered redd estimates range from **`r min(summary[2])`** to **`r max(summary[2])`%**.  Note that fall-run dewatering estimates are likely overestimated using the dewatering percentages from USFWS (2006), and likely do not reflect actual dewatering percentages and should only be used for comparative purposes between scenarios.  A comparative analysis between field and modeled dewatering percentages by Gosselin and Beer (2024) can be found here: https://www.cbr.washington.edu/sacramento/fishmodel/Note_on_Redd_Dewatering_Observed_v_Predicted.pdf.
 
 ```{r, echo = FALSE}
 library(lubridate)
