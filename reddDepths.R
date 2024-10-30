@@ -6,7 +6,9 @@ library(htmlwidgets)
 
 files <- list.files(path = 'External_data/ShallowRedds', pattern = 'xlsx')
 maxFile <- max(files)
-redds <- read_excel(paste0('External_data/ShallowRedds/',maxFile), sheet = 'SACPAS Shallow Redds')
+redds <- read_excel(paste0('External_data/ShallowRedds/',maxFile), sheet = 'SACPAS Shallow Redds') %>%
+  mutate(Emerge = if_else(Estimated_Emergence <= Sys.Date(), 1, 0)) %>%
+  filter(Emerge == 0)
 
 reddDate <- redds %>%
   summarize(format(max(measurement_date), '%B %d, %Y')) %>% pull()
@@ -14,7 +16,6 @@ title <- paste0('Shallow water redd monitoring as of ',reddDate)
 
 redds2 <- redds %>%
   group_by(Redd_ID) %>%
-  filter(all(status == "OK")) %>%
   summarise(
     min_depth = min(measurement_depth, na.rm = TRUE),
     has_trample = any(str_detect(comments, regex('trample', ignore_case = TRUE)))
@@ -32,7 +33,11 @@ redds2 <- redds %>%
   group_by(Redd_ID) %>%
   filter(all(status == "OK")) %>%
   ungroup() %>%
-  mutate(days_to_emerg = difftime(Estimated_Emergence, measurement_date, unit = 'days'))
+  mutate(days_to_emerg = difftime(Estimated_Emergence, measurement_date, unit = 'days')) %>%
+  mutate(Run = case_when(grepl('W', Redd_ID) ~ 'Winter',
+                         grepl('F', Redd_ID) ~ 'Fall',
+                         grepl('S', Redd_ID) ~ 'Spring')) %>%
+  filter(Run != 'Spring')
 
 risk <- redds2 %>%
   group_by(Redd_ID) %>%
@@ -67,12 +72,12 @@ ggsave(plot = depth, filename = 'shallow_redd_depths.png', width = 9, height = 6
 
 interactive_plot <- ggplot(redds2, aes(x = measurement_date, y = measurement_depth, group = Redd_ID)) + 
   geom_point(aes(color = measurement_depth, 
-                 text = paste("Depth (in):", measurement_depth,
+                 text = paste("Run:", Run,
+                   "<br>Depth (in):", measurement_depth,
                               "<br>Days to Emergence:", days_to_emerg,
                               "<br>Measurement Date:", format(measurement_date, "%B %d, %Y"),
                               "<br>Emergence Date: ", format(Estimated_Emergence, "%B %d, %Y"),
-                              "<br>Location:", location,
-                              "<br>Comments", comments)), size = 2)+
+                              "<br>Location:", location)), size = 2)+
   geom_line(linetype = 'dashed', color = '#666666', alpha = 0.7) +
   facet_wrap(~ Redd_ID, nrow = 4) +
   labs(x = 'Date', y = 'Water Depth (in)', color = 'Depth (in)', title = title) +
@@ -83,7 +88,7 @@ interactive_plot <- ggplot(redds2, aes(x = measurement_date, y = measurement_dep
         plot.margin = margin(.25, .25, .25, .25, "cm"),
         axis.title = element_text(size = 14),
         axis.text = element_text(size = 12)) +
-  scale_x_date(date_breaks = '1 months', date_labels = '%b') +
+  scale_x_date(date_breaks = '1.5 months', date_labels = '%b') +
   scale_colour_gradient(low = 'red', high = 'green')
   #scale_color_manual(values = c('0' = 'NA', '1' = '#990000', '2' = '#FF9900', '3' = '#CC33CC'), 
                      #labels = c('0' = 'Minimal', '1' = 'Dewater Risk', '2' = 'Trampled', '3' = 'Dewater Risk/Trampled')) +
