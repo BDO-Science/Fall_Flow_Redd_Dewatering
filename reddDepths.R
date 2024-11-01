@@ -37,7 +37,7 @@ redds2 <- redds %>%
   mutate(Run = case_when(grepl('W', Redd_ID) ~ 'Winter',
                          grepl('F', Redd_ID) ~ 'Fall',
                          grepl('S', Redd_ID) ~ 'Spring')) %>%
-  filter(Run != 'Spring')
+  filter(Run == 'Winter')
 
 risk <- redds2 %>%
   group_by(Redd_ID) %>%

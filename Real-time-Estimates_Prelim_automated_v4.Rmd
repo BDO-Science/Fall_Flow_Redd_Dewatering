@@ -3,9 +3,9 @@ title: 'PRELIMINARY DATA: Redd Dewatering Estimates for Keswick Fall Flow Scenar
 author: "BDO Science Division"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
-  pdf_document: default
-  word_document: default
   html_document: default
+  word_document: default
+  pdf_document: default
 ---
 
 ```{r setup, echo=FALSE, include = FALSE}
@@ -75,6 +75,7 @@ kesFlow <- kesFlow %>%
   select(-contains("actual"), -contains("timeline")) %>%  # Exclude columns with 'Actual' and 'Timeline'
   select_if(~ !all(is.na(.))) %>% #Exlcude blank columns
   gather(key = scenarios, value = flow, -date) %>% #gather for easier filtering
+  mutate(scenarios = gsub('_', '', scenarios)) %>%
   filter(scenarios %in% scen) %>% #filter for desired scenarios
   spread(key = scenarios, value = flow) #spread back out for later use
 
@@ -123,24 +124,21 @@ Please note that all data are preliminary until data collection is finalized. Li
 # query parameters for SacPAS
 # calendar year
 queryYear=yr
-# query dates can be empty string "" or explicit "mm/dd" (value will be NA for future dates or missing dates)
-# empty string for end date will result in data through most recent date in database for given year
-querySD="8/1"
-queryED= paste0(month(Sys.Date()),'/',day(Sys.Date()-1))
-outputFormat="csvSingle"
 
 # KWK river flow data from SacPAS
-queryKWKflow=paste("https://www.cbr.washington.edu/sacramento/data/php/rpt/mg.php?mgconfig=river&loc[]=KWK&data[]=Flow&outputFormat=",outputFormat,"&year[]=",queryYear,"&startdate=",querySD,"&enddate=",queryED, sep="")
+queryKWKflow= paste0("https://www.cbr.washington.edu/sacramento/data/php/rpt/mg.php?sc=1&mgconfig=river&outputFormat=csvSingle&hafilter=All&year%5B%5D=",yr,"&loc%5B%5D=KWK&data%5B%5D=Flow&tempUnit=F&startdate=1%2F1&enddate=12%2F31&avgyear=0&consolidate=1&grid=1&y1min=&y1max=&y2min=&y2max=&size=large")
 kwkFlowData = read.csv(queryKWKflow) %>% slice(1:(n()-3))
 
 # KES reservoir flow data from SacPAS
-queryKESflow=paste("https://www.cbr.washington.edu/sacramento/data/php/rpt/mg.php?mgconfig=river&loc[]=KES&data[]=ReservoirOutflow&outputFormat=",outputFormat,"&year[]=",queryYear,"&startdate=",querySD,"&enddate=",queryED, sep="")
+queryKESflow=paste0("https://www.cbr.washington.edu/sacramento/data/php/rpt/mg.php?sc=1&mgconfig=river&outputFormat=csvSingle&hafilter=All&year%5B%5D=",yr,"&loc%5B%5D=KES&data%5B%5D=ReservoirOutflow&tempUnit=F&startdate=1%2F1&enddate=12%2F31&avgyear=0&consolidate=1&grid=1&y1min=&y1max=&y2min=&y2max=&size=large")
 kesFlowData = read.csv(queryKESflow) %>% slice(1:(n()-3))
 
 allflows <- rbind(kwkFlowData, kesFlowData)
 allflows <- allflows %>% 
   mutate(Date = as.Date(paste0(mm.dd,'-',year), format = '%m-%d-%Y')) %>% 
-  rename('Flow' = 'value') %>% select(Date, Gage = location, Flow)
+  rename('Flow' = 'value') %>% 
+  select(Date, Gage = location, Flow) %>%
+  filter(Date >= '2024-08-01' & Date <= Sys.Date()-1)
 ```
 
 ```{r, echo = FALSE}
