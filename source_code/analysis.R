@@ -10,7 +10,7 @@ source(here::here(project, 'source_code/import_clean.R'))
 ###############################
 #fall flow dewatering estimates
 ###############################
-yr <- year(Sys.Date())
+
 #import fall-run spawn info
 spawn <- read.csv(here::here(project, 'input_data/model_inputs/spawnTimingAll.csv')) %>% 
   mutate(Date = as.Date(doy, origin = as.Date(paste0(yr,'-01-01')))) %>% #converts Julian Day to date for current year
@@ -133,7 +133,6 @@ spawn_graph
 ######################
 #winter-run dewatering
 ######################
-exp_fac <- 2
 wr_min_flow <- data.frame()
 
 for(i in 1:nrow(redds)) {

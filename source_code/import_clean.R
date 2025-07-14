@@ -5,7 +5,12 @@ library(readxl)
 library(CDECRetrieve)
 
 project <- here::here() #pointing to working directory
+
+#user defined values
 wy <- 2025
+exp_fac <- 2
+yr <- year(Sys.Date())
+
 ##############################
 #Reading in shallow redd files
 ##############################
