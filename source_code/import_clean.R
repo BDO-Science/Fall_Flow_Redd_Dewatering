@@ -91,8 +91,8 @@ updatedReddInfoDate <- read_excel(MaxReddFile,
 #pull in flow data from kwk and kes
 #merge real-time flow data with scenarios
 #########################################
-kwk <- cdec_query('KWK', '41', 'D', paste0(wy-1,'-08-01'), Sys.Date())
-kes <- cdec_query('KES', '23', 'D', paste0(wy-1,'-08-01'), Sys.Date())
+#kwk <- cdec_query('KWK', '41', 'D', paste0(wy-1,'-08-01'), Sys.Date())
+#kes <- cdec_query('KES', '23', 'D', paste0(wy-1,'-08-01'), Sys.Date())
 
 kwk_url <- paste0("https://www.cbr.washington.edu/sacramento/data/php/rpt/mg.php?sc=1&mgconfig=river&outputFormat=csv&hafilter=All&year%5B%5D="
                   ,wy,"&loc%5B%5D=KWK&data%5B%5D=Flow&tempUnit=F&startdate=1%2F1&enddate=12%2F31&avgyear=0&consolidate=1&grid=1&y1min=&y1max=&y2min=&y2max=&size=large")
