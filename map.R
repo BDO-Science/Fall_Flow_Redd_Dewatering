@@ -5,6 +5,7 @@ library(tidyverse)
 library(gridExtra)
 library(patchwork)
 library(leaflet.extras2)
+library(leaflet.extras)
 
 project <- here::here() #pointing to working directory
 wy <- 2025
@@ -57,9 +58,9 @@ plots <- lapply(redd_list, function(df){
                          fill = measurement_depth)) +
     #geom_line(linewidth = 1.5, alpha = 0.5) +
     geom_point(size = 5, shape = 21) +
-    scale_fill_gradientn(
-      colors = RColorBrewer::brewer.pal(9, "RdYlBu"),
-      limits = c(min_depth, max(redds$measurement_depth, na.rm = TRUE))
+    scale_fill_viridis_c(
+      limits = c(min_depth, max(redds$measurement_depth, na.rm = TRUE)),
+      direction = -1
     ) +
     #annotate(geom = 'text', x = mid, y = 5, label = text, fontface = 'bold', size = 4) +
     scale_y_reverse(limits = c(maxdepth, 0)) +
@@ -132,9 +133,9 @@ for_map_flows <- data.frame(gauge = c('KES Gage (Keswick Reservoir Outlfow)', 'K
 
 
 pal <- colorNumeric(
-  palette = "RdYlBu",
+  palette = "viridis",
   domain = c(min_depth, max(for_map$measurement_depth, na.rm = TRUE)),
-  reverse = FALSE
+  reverse = TRUE
 )
 leaf_icons <- awesomeIcons(
   icon = 'tint',
@@ -143,7 +144,9 @@ leaf_icons <- awesomeIcons(
   markerColor = 'blue'
 )
 map <- leaflet() %>%
-  addProviderTiles(providers$CartoDB.Voyager) %>%
+  addProviderTiles(providers$Esri.WorldGrayCanvas, group = "ESRI (grey canvas") %>%
+  addProviderTiles(providers$Esri.WorldImagery, group = 'ESRI (satellite)') %>%
+  setView(lng = -122.3836, lat = 40.5754, zoom = 11) %>%
   addCircleMarkers(data = for_map, 
                    lng = ~Longitude, 
                    lat = ~Latitude, 
@@ -177,7 +180,13 @@ map <- leaflet() %>%
     width = 150,
     height = 150,
     zoomLevelOffset = -4
-  )
+  ) %>%
+  addLayersControl(
+    baseGroups = c(
+      "ESRI (grey canvas)",
+      "ESRI (satellite)"
+    )) %>%
+  addResetMapButton()
 map
 
 htmlwidgets::saveWidget(map, file = 'redd_depth_map.html', selfcontained = TRUE)
