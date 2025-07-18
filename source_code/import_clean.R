@@ -27,9 +27,8 @@ redds <- read_excel(MaxReddFile,  sheet = reddsheet, #read in shallow redd file 
                     range = cell_cols(c('A:I'))) %>% 
   na.omit() %>% 
   select(date_established = 3,emergence_date = 4, status = 6, dewater_flow = 9) %>%
-  mutate_at(1:2, as.Date)#minor cleaning
-
-redds2 <- redds #putting in a spare dataframe or later use
+  mutate_at(1:2, as.Date) %>%#minor cleaning
+  mutate(dewater_flow = as.numeric(dewater_flow))
 
 #######################
 #reading in scenarios
