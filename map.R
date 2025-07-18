@@ -7,7 +7,7 @@ library(patchwork)
 library(leaflet.extras2)
 
 project <- here::here() #pointing to working directory
-
+wy <- 2025
 files <- list.files(here::here(project, 'input_data/shallow_redds/'), pattern = "\\.xlsx$", full.names = TRUE)
 maxFile <- max(files)
 redds <- read_excel(maxFile, sheet = 'SacPAS Shallow Redds') %>%
