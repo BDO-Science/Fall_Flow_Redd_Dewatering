@@ -2,7 +2,6 @@ library(tidyverse)
 library(janitor)
 library(here)
 library(readxl)
-library(CDECRetrieve)
 
 project <- here::here() #pointing to working directory
 
@@ -95,9 +94,23 @@ updatedReddInfoDate <- read_excel(MaxReddFile,
 kwk <- cdec_query('KWK', '41', 'D', paste0(wy-1,'-08-01'), Sys.Date())
 kes <- cdec_query('KES', '23', 'D', paste0(wy-1,'-08-01'), Sys.Date())
 
+kwk_url <- paste0("https://www.cbr.washington.edu/sacramento/data/php/rpt/mg.php?sc=1&mgconfig=river&outputFormat=csv&hafilter=All&year%5B%5D="
+                  ,wy,"&loc%5B%5D=KWK&data%5B%5D=Flow&tempUnit=F&startdate=1%2F1&enddate=12%2F31&avgyear=0&consolidate=1&grid=1&y1min=&y1max=&y2min=&y2max=&size=large")
+
+kes_url <- paste0("https://www.cbr.washington.edu/sacramento/data/php/rpt/mg.php?sc=1&mgconfig=river&outputFormat=csv&hafilter=All&year%5B%5D="
+                  ,wy,"&loc%5B%5D=KES&data%5B%5D=ReservoirOutflow&tempUnit=F&startdate=1%2F1&enddate=12%2F31&avgyear=0&consolidate=1&grid=1&y1min=&y1max=&y2min=&y2max=&size=large")
+
+kwk <- read_csv(kwk_url) %>% clean_names() %>%
+  mutate(location = 'KWK') %>%
+  select(date = 1, 3,flow = 2,)
+kes <- read_csv(kes_url) %>% clean_names() %>%
+  mutate(location = 'KES') %>%
+  select(date = 1, 3,flow = 2,)
+
 rt_flows <- bind_rows(kwk,kes) %>%
-  select(date = 3, location = 2, flow = 5) %>%
-  mutate(date = ymd(date)) %>%
+  mutate(date = mdy(paste0(date,'/',wy))) %>%
+  filter(!is.na(date)) %>%
+  filter(date <= Sys.Date()) %>%
   filter(date >= as.Date('2025-08-01'))
 
 kes_flow_bind <- rt_flows %>%
