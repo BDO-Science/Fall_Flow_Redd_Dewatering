@@ -6,6 +6,7 @@ library(gridExtra)
 library(patchwork)
 library(leaflet.extras2)
 library(leaflet.extras)
+library(janitor)
 
 project <- here::here() #pointing to working directory
 wy <- 2025
@@ -144,7 +145,7 @@ leaf_icons <- awesomeIcons(
   markerColor = 'blue'
 )
 map <- leaflet() %>%
-  addProviderTiles(providers$Esri.WorldGrayCanvas, group = "ESRI (grey canvas") %>%
+  addProviderTiles(providers$CartoDB.Positron, group = "CartoDB (grey canvas)") %>%
   addProviderTiles(providers$Esri.WorldImagery, group = 'ESRI (satellite)') %>%
   setView(lng = -122.3836, lat = 40.5754, zoom = 11) %>%
   addCircleMarkers(data = for_map, 
@@ -152,10 +153,25 @@ map <- leaflet() %>%
                    lat = ~Latitude, 
                    label = ~paste("Latest Depth (in):", measurement_depth),
                    fillColor = ~pal(measurement_depth),
+                   group = "CartoDB (grey canvas)",
                    color = 'black',
                    weight = 2,# Optional: border color
                    fillOpacity = 1,
                    radius = 5,
+                   popup = popupGraph(plots_ordered, width = 625, height = 425),
+                   popupOptions = popupOptions(
+                     autoPan = TRUE
+                   )) %>%
+  addCircleMarkers(data = for_map, 
+                   lng = ~Longitude, 
+                   lat = ~Latitude, 
+                   label = ~paste("Latest Depth (in):", measurement_depth),
+                   fillColor = ~pal(measurement_depth),
+                   group = "ESRI (satellite)",
+                   color = 'white',
+                   fillOpacity = 2,
+                   weight = 3,# Optional: border color
+                   radius = 6,
                    popup = popupGraph(plots_ordered, width = 625, height = 425),
                    popupOptions = popupOptions(
                      autoPan = TRUE
@@ -183,13 +199,13 @@ map <- leaflet() %>%
   ) %>%
   addLayersControl(
     baseGroups = c(
-      "ESRI (grey canvas)",
+      "CartoDB (grey canvas)",
       "ESRI (satellite)"
     )) %>%
   addResetMapButton()
 map
 
-htmlwidgets::saveWidget(map, file = 'redd_depth_map.html', selfcontained = TRUE)
+htmlwidgets::saveWidget(map, file = 'redd_depth_map.html')
 
 
 
