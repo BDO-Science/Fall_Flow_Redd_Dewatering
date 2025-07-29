@@ -9,7 +9,7 @@ project <- here::here() #pointing to working directory
 wy <- 2025
 exp_fac <- 2
 yr <- year(Sys.Date())
-
+eosStorage <- 2413
 ##############################
 #Reading in shallow redd files
 ##############################
@@ -28,7 +28,7 @@ redds <- read_excel(MaxReddFile,  sheet = reddsheet, #read in shallow redd file 
   na.omit() %>% 
   select(date_established = 3,emergence_date = 4, status = 6, dewater_flow = 9) %>%
   mutate_at(1:2, as.Date) %>%#minor cleaning
-  mutate(dewater_flow = as.numeric(dewater_flow))
+  mutate(dewater_flow = as.numeric(str_extract(dewater_flow, "\\d+\\.*\\d*")))
 
 #######################
 #reading in scenarios
@@ -122,4 +122,12 @@ scens_with_rt_flows <- filter(scen_flow_import, Date > max(kes_flow_bind$Date)) 
   bind_rows(kes_flow_bind) %>%
   pivot_wider(names_from = 'scenarios', values_from = 'flow')
 
-
+#########################################
+#pull in 90% exceendance flows
+#merge with real-time flow data
+#########################################
+forecast_90_flows <- read_csv(here::here(project, 'input_data/flow_scen/aug_90.csv')) %>%
+  mutate(Date = mdy(date)) %>%
+  select(3, 2) %>%
+  filter(Date > max(kes_flow_bind$Date)) %>%
+  bind_rows(select(kes_flow_bind, Date, flow))

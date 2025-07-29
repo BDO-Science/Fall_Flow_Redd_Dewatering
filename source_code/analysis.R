@@ -58,11 +58,8 @@ fall_dewater_summary <- redd_model_final %>%
   filter(year > 2013)
 
 fall_dewater_mean <- fall_dewater_summary %>%
-      summarize(
-        year = "Mean",
-        A1 = mean(A1, na.rm = TRUE),
-        B1 = mean(B1, na.rm = TRUE)
-      )
+  summarize(across(-1, ~mean(.x, na.rm = TRUE))) %>%
+  mutate(year = "Mean", .before = 1)
 
 all_dewater_table <- fall_dewater_summary %>%
   datawizard::data_transpose(colnames = TRUE) %>%
@@ -73,62 +70,62 @@ fall_dewater_for_table <- fall_dewater_mean %>%
   mutate(across(everything(), ~ round(.x, 1)))
   
 ####various optional graphs
-min_year <- min(as.numeric(fall_dewater_summary$year), na.rm = TRUE)
+# min_year <- min(as.numeric(fall_dewater_summary$year), na.rm = TRUE)
+# 
+# spawn_graph_2 <- ggplot() +
+#   geom_boxplot(spawn, mapping = aes(x = factor(year), y = Date, fill = factor(year)),
+#                color = 'black') +
+#   scale_fill_viridis_d() +
+#   labs(x = 'Spawn Year') +
+#   coord_flip() +
+#   theme_bw() +
+#   theme(legend.position = 'none')
+# spawn_graph_2
+# 
+# fall_dewater_summary_test <- fall_dewater_summary %>%
+#   mutate(C1 = B1, D1 = B1, E1 = B1, F1 = B1, G1 = B1)
+# dewater_graph <- fall_dewater_summary_test %>%
+#   pivot_longer(names_to = 'Scenarios', values_to = 'dewater', -1) %>%
+#   ggplot(aes(x = Scenarios, y = dewater, fill = Scenarios)) +
+#   scale_fill_viridis_d(option = 'turbo') +
+#   #geom_tile(width = 0.9, height = 0.9, color = 'black') +
+#   #geom_label(aes(label = dewater), fill = 'white', size = 3) +
+#   geom_col(color = 'black') +
+#   facet_wrap(~year, ncol = 1) +
+#   scale_y_continuous(position = 'right') +
+#   labs(y = 'Redds Dewatered (%)') +
+#   #coord_flip() +
+#   theme_bw() +
+#   theme(legend.position = 'none',
+#         strip.background = element_blank(),
+#         strip.text = element_blank())
+# dewater_graph
+# 
+# final_graph <- (spawn_graph_2|dewater_graph) + plot_layout(widths = c(4.5,1.5))
+# final_graph
+# #ggsave(plot = final_graph, file = 'test_graph.png', height = 9, width = 10)
+# spawning_cum_half <- spawn %>%
+#   mutate(cum_round = round(cumul_prop, 1)) %>%
+#   filter(cum_round == 0.5) %>%
+#   group_by(year) %>%
+#   slice_head(n = 1)
 
-spawn_graph_2 <- ggplot() +
-  geom_boxplot(spawn, mapping = aes(x = factor(year), y = Date, fill = factor(year)),
-               color = 'black') +
-  scale_fill_viridis_d() +
-  labs(x = 'Spawn Year') +
-  coord_flip() +
-  theme_bw() +
-  theme(legend.position = 'none')
-spawn_graph_2
-
-fall_dewater_summary_test <- fall_dewater_summary %>%
-  mutate(C1 = B1, D1 = B1, E1 = B1, F1 = B1, G1 = B1)
-dewater_graph <- fall_dewater_summary_test %>%
-  pivot_longer(names_to = 'Scenarios', values_to = 'dewater', -1) %>%
-  ggplot(aes(x = Scenarios, y = dewater, fill = Scenarios)) +
-  scale_fill_viridis_d(option = 'turbo') +
-  #geom_tile(width = 0.9, height = 0.9, color = 'black') +
-  #geom_label(aes(label = dewater), fill = 'white', size = 3) +
-  geom_col(color = 'black') +
-  facet_wrap(~year, ncol = 1) +
-  scale_y_continuous(position = 'right') +
-  labs(y = 'Redds Dewatered (%)') +
-  #coord_flip() +
-  theme_bw() +
-  theme(legend.position = 'none',
-        strip.background = element_blank(),
-        strip.text = element_blank())
-dewater_graph
-
-final_graph <- (spawn_graph_2|dewater_graph) + plot_layout(widths = c(4.5,1.5))
-final_graph
-#ggsave(plot = final_graph, file = 'test_graph.png', height = 9, width = 10)
-spawning_cum_half <- spawn %>%
-  mutate(cum_round = round(cumul_prop, 1)) %>%
-  filter(cum_round == 0.5) %>%
-  group_by(year) %>%
-  slice_head(n = 1)
-
-spawn_graph <-  ggplot() +
-  geom_line(filter(spawn, year >= min_year), 
-            mapping = aes(x = Date, y = cumul_prop),
-            color = 'steelblue3',
-            linewidth = 1) +
-  geom_point(filter(spawning_cum_half, year >= min_year), 
-             mapping = aes(x = Date, y = 0.50),
-             size = 2,
-             shape = 8,
-             stroke = 2) +
-  geom_text(filter(spawning_cum_half, year >= min_year), 
-            mapping = aes(x = Date-15, y = 0.50+0.12, label = format(Date, '%b %d'))) +
-  labs(y = 'Cumulative Spawning Proportion') +
-  facet_wrap(~year, ncol = 2) +
-  theme_bw()
-spawn_graph
+# spawn_graph <-  ggplot() +
+#   geom_line(filter(spawn, year >= min_year), 
+#             mapping = aes(x = Date, y = cumul_prop),
+#             color = 'steelblue3',
+#             linewidth = 1) +
+#   geom_point(filter(spawning_cum_half, year >= min_year), 
+             #mapping = aes(x = Date, y = 0.50),
+             #size = 2,
+             #shape = 8,
+             #stroke = 2) +
+  #geom_text(filter(spawning_cum_half, year >= min_year), 
+            #mapping = aes(x = Date-15, y = 0.50+0.12, label = format(Date, '%b %d'))) +
+  #labs(y = 'Cumulative Spawning Proportion') +
+  #facet_wrap(~year, ncol = 2) +
+  #theme_bw()
+#spawn_graph
 
 ######################
 #winter-run dewatering
@@ -175,7 +172,7 @@ sep_feb_volume <- scens_with_rt_flows %>%
   mutate(across(everything(), ~ round(.x, 0)))
 
 aug_sep_volume <- scens_with_rt_flows %>%
-  filter(Date <= paste0(yr,'-08-31')) %>%
+  filter(Date <= paste0(yr,'-09-30')) %>%
   summarize(across(-1, ~ sum(.x) * 1.983 / 1000)) %>%
   mutate(across(everything(), ~ round(.x, 0)))
 
@@ -249,6 +246,13 @@ redd_graph <- ggplot() + geom_line(flows, mapping = aes(x = Date, y = Flow, colo
   #annotate(geom = 'text', x = as.Date('2023-09-03'), y = 9350, size = 3, label = 'KWK') +
   #annotate(geom = 'text', x = as.Date('2023-09-03'), y = 7750, size = 3, label = 'KES')
 redd_graph
+
 ##########################
 #EOS analysis
 ##########################
+projected_90_cost <- (sum(forecast_90_flows$flow) * 1.983) / 1000
+
+eos_scen <- aug_sep_volume %>%
+  pivot_longer(names_to = 'Scenario', values_to = 'Vol', 1:ncol(aug_sep_volume)) %>%
+  mutate(eos = eosStorage - (Vol-projected_90_cost))
+

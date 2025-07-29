@@ -76,7 +76,8 @@ plots <- lapply(redd_list, function(df){
           axis.text = element_text(size = 14))
   table <- df %>%
     slice(n()) %>%
-    select(3,'Most Recent Depth (in)' = 12, 'Date Measured' = 13, 'Emergence Date (estimate)' = 5,18,7)
+    select(Redd_ID,'Most Recent Depth (in)' = measurement_depth, 'Date Measured' = measurement_date, 
+           'Emergence Date (estimate)' = Estimated_Emergence,Run,Status)
   t_grob <- tableGrob(table,  rows = NULL)
   t_plot <- ggplot() +
     annotation_custom(t_grob) +
@@ -205,7 +206,7 @@ map <- leaflet() %>%
   addResetMapButton()
 map
 
-htmlwidgets::saveWidget(map, file = 'redd_depth_map.html')
+htmlwidgets::saveWidget(map, file = 'redd_depth_map.html', selfcontained = TRUE)
 
 
 
