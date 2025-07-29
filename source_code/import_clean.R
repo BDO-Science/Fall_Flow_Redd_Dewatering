@@ -99,27 +99,28 @@ kwk_url <- paste0("https://www.cbr.washington.edu/sacramento/data/php/rpt/mg.php
 kes_url <- paste0("https://www.cbr.washington.edu/sacramento/data/php/rpt/mg.php?sc=1&mgconfig=river&outputFormat=csv&hafilter=All&year%5B%5D="
                   ,wy,"&loc%5B%5D=KES&data%5B%5D=ReservoirOutflow&tempUnit=F&startdate=1%2F1&enddate=12%2F31&avgyear=0&consolidate=1&grid=1&y1min=&y1max=&y2min=&y2max=&size=large")
 
-kwk <- read_csv(kwk_url) %>% clean_names() %>%
+kwk <- read_csv(kwk_url) %>% clean_names() %>% #importing kwk data from SacPAS
   mutate(location = 'KWK') %>%
-  select(date = 1, 3,flow = 2,)
-kes <- read_csv(kes_url) %>% clean_names() %>%
+  select(date = 1, 3,flow = 2)
+kes <- read_csv(kes_url) %>% clean_names() %>% #importing kes data from SacPAS
   mutate(location = 'KES') %>%
-  select(date = 1, 3,flow = 2,)
+  select(date = 1, 3,flow = 2)
 
 rt_flows <- bind_rows(kwk,kes) %>%
   mutate(date = mdy(paste0(date,'/',wy))) %>%
-  filter(!is.na(date)) %>%
+  filter(!is.na(date),
+         !is.na(flow)) %>%
   filter(date <= Sys.Date()) %>%
   filter(date >= as.Date('2025-08-01'))
 
 kes_flow_bind <- rt_flows %>%
-  filter(location == 'KES') %>%
+  filter(location == 'KES') %>% #filter for only KES data
   select(-2) %>%
-  crossing(scenarios = scen_filter) %>%
+  crossing(scenarios = scen_filter) %>% #expands real-time flow data to all desired scenarios
   select(Date = 1,3,2)
 
-scens_with_rt_flows <- filter(scen_flow_import, Date > max(kes_flow_bind$Date)) %>%
-  bind_rows(kes_flow_bind) %>%
+scens_with_rt_flows <- filter(scen_flow_import, Date > max(kes_flow_bind$Date)) %>% #filter out scenario data by max real-time date
+  bind_rows(kes_flow_bind) %>% #bind realtime flows
   pivot_wider(names_from = 'scenarios', values_from = 'flow')
 
 #########################################
