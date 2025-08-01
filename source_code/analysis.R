@@ -127,10 +127,27 @@ fall_dewater_for_table <- fall_dewater_mean %>%
   #theme_bw()
 #spawn_graph
 
+##########################
+#expansion factor
+##########################
+
+pop_tab <- data.frame(Expansion = seq(1,3.5,0.5)) %>%
+  mutate(Redds = round(reddCount*Expansion, 0),
+         "Dewatering Threshold (1%)" = round(Redds*0.01,0)) %>%
+  rename("Expansion Factor" = Expansion,
+         "Total Redds" = Redds)
+
 ######################
 #winter-run dewatering
 ######################
 wr_min_flow <- data.frame()
+
+redds_ok <- redds %>%
+  filter(status == 'OK')
+
+redds_total <- nrow(redds)
+redds_dewatered <- nrow(subset(redds, redds$status == "DEWATERED"))
+redds_emerged <- nrow(subset(redds, redds$status == "EMERGED"))
 
 for(i in 1:nrow(redds)) {
   temp <- filter(scens_with_rt_flows, Date <= redds$emergence_date[i] 
@@ -141,7 +158,7 @@ for(i in 1:nrow(redds)) {
 
 redds2 <- bind_cols(redds, wr_min_flow) %>%
   mutate(dewater_flow_250_buffer = dewater_flow + 250) %>%
-  pivot_longer(names_to = 'Scenarios', values_to = 'min_flow', 5:(ncol(.)-1)) %>%
+  pivot_longer(names_to = 'Scenarios', values_to = 'min_flow', 6:(ncol(.)-1)) %>%
   mutate(dewater = if_else(dewater_flow > min_flow, 1, 0),
          dewater_250_buffer = if_else(dewater_flow_250_buffer > min_flow, 1, 0))
 
@@ -182,7 +199,7 @@ aug_sep_volume <- scens_with_rt_flows %>%
 #create column of measures
 Metric <- data.frame(Measure = c("Avg Sept Flow (cfs)", "Avg Oct Flow (cfs)", 
             "Sept-Feb Total Volume (TAF)", "Aug-Sept Total Volume (TAF)", "Winter-run Redds Dewatered", 
-            "Winter-run % Lost (current count)", paste0("Winter-run % Lost (mean expansion of ",exp_fac,")"), 
+            "Winter-run % Lost (expansion factor = 1)", paste0("Winter-run % Lost (expansion factor = ",exp_fac,")"), 
             "Winter-run Redds Dewatered (250 cfs buffer)", "Winter-run % Lost (250 cfs buffer)",
             "Fall-run % Redds Dewatered"))
 
@@ -191,16 +208,14 @@ summary_table <- bind_rows(avg_flow_sep_oct, sep_feb_volume, aug_sep_volume,
   bind_cols(Metric) %>%
   select(ncol(.), 1:ncol(.))
 
+summary_table_flow <- slice(summary_table, 1:4) %>%
+  rename('Volume Measures' = 'Measure')
 
-##########################
-#expansion factor
-##########################
+summary_table_counts <- slice(summary_table, 5,8) %>%
+  rename('Dewatering Count Measures' = 'Measure')
 
-pop_tab <- data.frame(Expansion = seq(1,4,0.5)) %>%
-  mutate(Redds = round(reddCount*Expansion, 0),
-         "Dewatering Threshold (1%)" = Redds*0.01) %>%
-  rename("Expansion Factor" = Expansion,
-         "Total Redds" = Redds)
+summary_table_percent <- slice(summary_table, 6,7,9,10) %>%
+  rename('Dewatering % Measures' = 'Measure')
 
 ##########################
 #dewatering graph

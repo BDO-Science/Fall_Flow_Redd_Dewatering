@@ -7,7 +7,7 @@ project <- here::here() #pointing to working directory
 
 #user defined values
 wy <- 2025
-exp_fac <- 2
+exp_fac <- 2.04
 yr <- year(Sys.Date())
 eosStorage <- 2413
 ##############################
@@ -26,8 +26,8 @@ reddsheet <- tibble(sheet = excel_sheets(MaxReddFile)) %>%
 redds <- read_excel(MaxReddFile,  sheet = reddsheet, #read in shallow redd file and clean up.
                     range = cell_cols(c('A:I'))) %>% 
   na.omit() %>% 
-  select(date_established = 3,emergence_date = 4, status = 6, dewater_flow = 9) %>%
-  mutate_at(1:2, as.Date) %>%#minor cleaning
+  select(redd_id = 2, date_established = 3,emergence_date = 4, status = 6, dewater_flow = 9) %>%
+  mutate_at(2:3, as.Date) %>%#minor cleaning
   mutate(dewater_flow = as.numeric(str_extract(dewater_flow, "\\d+\\.*\\d*")))
 
 #######################
@@ -77,9 +77,22 @@ sheetCount <- tibble(sheet = excel_sheets(MaxCountFile)) %>% #read in most recen
 #for Count data
 Count <- read_excel(MaxCountFile,  
                     sheet = sheetCount) #pull in sheet with count data
-reddCount <- round(as.numeric(Count[[(which(Count[, 2] == 'To date, unexpanded redd count') + 1), 2]]),0) #isolate count
-countDate <- format(as.Date(as.numeric(Count[[(which(Count[, 1] == 'Through') + 1), 1]]), 
-                            origin = "1899-12-30"), "%B %d, %Y")
+reddCountquery <- round(as.numeric(Count[[(which(Count[, 2] == 'To date, unexpanded redd count') + 1), 2]]),0) #isolate count
+
+countDatequery <- as.Date(as.numeric(Count[[(which(Count[, 1] == 'Through') + 1), 1]]), 
+                      origin = "1899-12-30")
+
+countDate <- if (countDatequery == as.Date('2025-07-23')) {
+  format(as.Date('2025-07-27'), "%B %d, %Y")
+} else {
+  format(countDate, "%B %d, %Y")
+}
+
+reddCount <- if(reddCountquery == 901) {
+  1157
+} else {
+  reddCountquery
+}
 
 updatedReddInfoDate <- read_excel(MaxReddFile, 
                                   sheet = grep('sacpas', excel_sheets(MaxReddFile),
@@ -119,8 +132,9 @@ kes_flow_bind <- rt_flows %>%
   crossing(scenarios = scen_filter) %>% #expands real-time flow data to all desired scenarios
   select(Date = 1,3,2)
 
-scens_with_rt_flows <- filter(scen_flow_import, Date > max(kes_flow_bind$Date)) %>% #filter out scenario data by max real-time date
-  bind_rows(kes_flow_bind) %>% #bind realtime flows
+scens_with_rt_flows <- scen_flow_import %>%
+  #filter(scen_flow_import, Date > max(kes_flow_bind$Date)) %>% #filter out scenario data by max real-time date
+  #bind_rows(kes_flow_bind) %>% #bind realtime flows
   pivot_wider(names_from = 'scenarios', values_from = 'flow')
 
 #########################################
