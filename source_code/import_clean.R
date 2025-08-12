@@ -83,13 +83,13 @@ countDatequery <- as.Date(as.numeric(Count[[(which(Count[, 1] == 'Through') + 1)
                       origin = "1899-12-30")
 
 countDate <- if (countDatequery == as.Date('2025-07-23')) {
-  format(as.Date('2025-07-27'), "%B %d, %Y")
+  format(as.Date('2025-08-07'), "%B %d, %Y")
 } else {
   format(countDate, "%B %d, %Y")
 }
 
 reddCount <- if(reddCountquery == 901) {
-  1157
+  1828
 } else {
   reddCountquery
 }
@@ -133,8 +133,8 @@ kes_flow_bind <- rt_flows %>%
   select(Date = 1,3,2)
 
 scens_with_rt_flows <- scen_flow_import %>%
-  #filter(scen_flow_import, Date > max(kes_flow_bind$Date)) %>% #filter out scenario data by max real-time date
-  #bind_rows(kes_flow_bind) %>% #bind realtime flows
+  filter(Date > max(kes_flow_bind$Date)) %>% #filter out scenario data by max real-time date
+  bind_rows(kes_flow_bind) %>% #bind realtime flows
   pivot_wider(names_from = 'scenarios', values_from = 'flow')
 
 #########################################

@@ -221,7 +221,7 @@ summary_table_percent <- slice(summary_table, 6,7,9,10) %>%
 #dewatering graph
 ##########################
 ymin <- plyr::round_any(min(redds$dewater_flow), 1000, f = floor)
-ymax <- plyr::round_any(max(scens_with_rt_flows[2:3])+250, 500, f = ceiling)
+ymax <- plyr::round_any(max(scens_with_rt_flows[2:3])+400, 500, f = ceiling)
 todays_date <- Sys.Date()
 mid <- as.Date(paste0(yr,'-08-01')) + floor((todays_date - as.Date(paste0(yr,'-08-01')))/2)
 
@@ -233,19 +233,18 @@ redds_graph <- redds %>% group_by(emergence_date, status, dewater_flow) %>%
 
 flows <- scens_with_rt_flows %>% 
   pivot_longer(names_to = 'Alts', values_to = 'Flow', -1) %>%
-  filter(Date >= todays_date)
+  filter(Date >= max(rt_flows$date))
 
 redd_graph <- ggplot() + geom_line(flows, mapping = aes(x = Date, y = Flow, color = Alts), linewidth = 0.75) +
   geom_line(rt_flows, mapping = aes(x = date, y = flow, linetype = location), linewidth = 0.75) +
-  scale_linetype_discrete(guide = "none") +
   geom_point(redds_graph, mapping = aes(x = emergence_date, y = dewater_flow, fill = status), 
              shape = 21, size = 6, color = 'black',
              ) +
   geom_text(redds_graph, mapping = aes(x = emergence_date, y = dewater_flow, label = count),
             color = 'black') +
-  ylim(ymin, ymax) +
+  ylim(ymin, ymax+200) +
   xlim(min(as.Date(paste0(yr,'-08-01'))), (max(redds$emergence_date) + 5)) +
-  labs(x = 'Date', y = 'Flow (cfs)', fill = 'Redd Status') +
+  labs(x = 'Date', y = 'Flow (cfs)', fill = 'Redd Status', linetype = '') +
   theme_bw() +
   theme(legend.position = 'bottom', 
         legend.text = element_text(size = 12), 
@@ -253,13 +252,11 @@ redd_graph <- ggplot() + geom_line(flows, mapping = aes(x = Date, y = Flow, colo
         axis.title = element_text(size = 14),
         legend.title = element_text(size = 14),
         legend.key.size = unit(0.3, 'cm')) +
-  scale_fill_manual(values = c(Re = 'lightgrey', Em = 'steelblue3', De = 'darkorange'))
-  #annotate(geom = 'rect', xmin = as.Date(paste0(yr,'-08-01')), xmax = max(todays_date), 
-           #ymin = 3000, ymax = max(rt_flows$flow) + 100, fill = 'darkgrey', color = 'black', alpha = 0.2, linetype = 'dotted') +
-  #annotate(geom = 'text', x = (mid + 0.5), y = max(rt_flows$flow) + 400, size = 3.5, 
-           #fontface = 'italic', label = 'Actual Flows') +
-  #annotate(geom = 'text', x = as.Date('2023-09-03'), y = 9350, size = 3, label = 'KWK') +
-  #annotate(geom = 'text', x = as.Date('2023-09-03'), y = 7750, size = 3, label = 'KES')
+  scale_fill_manual(values = c(Re = 'lightgrey', Em = 'steelblue3', De = 'darkorange')) +
+  annotate(geom = 'rect', xmin = as.Date(paste0(yr,'-08-01')), xmax = max(rt_flows$date), 
+           ymin = 3000, ymax = max(rt_flows$flow) + 100, fill = 'darkgrey', color = 'black', alpha = 0.2, linetype = 'dotted') +
+  annotate(geom = 'text', x = (mid + 0.5), y = max(rt_flows$flow) + 350, size = 3.5, 
+           fontface = 'italic', label = 'Actual Flows')
 redd_graph
 
 ##########################
