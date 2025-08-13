@@ -181,7 +181,7 @@ avg_flow_sep_oct <- scens_with_rt_flows %>%
   filter(month %in% c(9,10)) %>%
   group_by(month) %>%
   summarize(across(-1,mean)) %>%
-  select(2,3)
+  select(-1)
 
 sep_feb_volume <- scens_with_rt_flows %>%
   filter(Date > paste0(yr,'-08-31')) %>%
