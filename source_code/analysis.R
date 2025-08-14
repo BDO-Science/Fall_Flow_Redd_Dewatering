@@ -149,25 +149,25 @@ redds_total <- nrow(redds)
 redds_dewatered <- nrow(subset(redds, grepl("dewater", status, ignore.case = TRUE)))
 redds_emerged <- nrow(subset(redds, redds$status == "EMERGED"))
 
-for(i in 1:nrow(redds)) {
+for(i in 1:nrow(redds_ok)) {
   temp <- filter(scens_with_rt_flows, Date <= redds$emergence_date[i] 
                  & Date >= redds$date_established[i]) %>%
     summarize(across(-1, min))
   wr_min_flow <- bind_rows(wr_min_flow, temp)
 }
 
-redds2 <- bind_cols(redds, wr_min_flow) %>%
+redds2 <- bind_cols(redds_ok, wr_min_flow) %>%
   mutate(dewater_flow_250_buffer = dewater_flow + 250) %>%
   pivot_longer(names_to = 'Scenarios', values_to = 'min_flow', 6:(ncol(.)-1)) %>%
   mutate(dewater = if_else(dewater_flow > min_flow, 1, 0),
          dewater_250_buffer = if_else(dewater_flow_250_buffer > min_flow, 1, 0))
 
 wr_dewater <- redds2 %>% group_by(Scenarios) %>%
-  summarize(dewater = sum(dewater),
-            dewater_250_buffer = sum(dewater_250_buffer)) %>%
+  summarize(dewater = sum(dewater) + redds_dewatered,
+            dewater_250_buffer = sum(dewater_250_buffer) + redds_dewatered) %>%
   ungroup() %>%
   mutate(dewater_perc = round((dewater/reddCount)*100,1),
-         dewater_perc_exp = round((dewater/(reddCount*2)*100),1),
+         dewater_perc_exp = round((dewater/(reddCount*exp_fac)*100),1),
          dewater_perc_250_buffer = round((dewater_250_buffer/(reddCount)*100),1)) %>%
   select(1,2,4,5,3,6) %>%
   datawizard::data_transpose(colnames = TRUE,
