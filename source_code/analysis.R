@@ -146,7 +146,7 @@ redds_ok <- redds %>%
   filter(status == 'OK')
 
 redds_total <- nrow(redds)
-redds_dewatered <- nrow(subset(redds, redds$status == "DEWATERED"))
+redds_dewatered <- nrow(subset(redds, grepl("dewater", status, ignore.case = TRUE)))
 redds_emerged <- nrow(subset(redds, redds$status == "EMERGED"))
 
 for(i in 1:nrow(redds)) {
@@ -227,6 +227,10 @@ mid <- as.Date(paste0(yr,'-08-01')) + floor((todays_date - as.Date(paste0(yr,'-0
 
 redds_graph <- redds %>% group_by(emergence_date, status, dewater_flow) %>%
   summarize(count = n()) %>%
+  ungroup() %>%
+  mutate(status = case_when(grepl('dewater', status, ignore.case = TRUE) ~ 'DEWATER',
+                            grepl('ok', status, ignore.case = TRUE) ~ 'OK',
+                            grepl('emerge', status, ignore.case = TRUE) ~ 'EMERGED')) %>%
   mutate(status = factor(status, 
                          levels = c('OK', 'EMERGED', 'DEWATER'),
                          labels = c('Re', 'Em', 'De')))
