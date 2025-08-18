@@ -50,6 +50,7 @@ scen_filter <- read_excel(MaxScenFile,
 scen_flow_import <- read_excel(MaxScenFile, 
                           sheet = flowsheet, skip = 1, col_names = TRUE) %>%
   mutate(Date = as.Date(as.numeric(Date), origin = "1899-12-30")) %>%
+  select(-Actual) %>%
   pivot_longer(names_to = 'scenarios', values_to = 'flow', -1) %>%
   filter(scenarios %in% scen_filter,
          !is.na(Date))
