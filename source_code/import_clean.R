@@ -86,7 +86,7 @@ countDatequery <- as.Date(as.numeric(Count[[(which(Count[, 1] == 'Through') + 1)
 countDate <- if (countDatequery == as.Date('2025-07-23')) {
   format(as.Date('2025-08-13'), "%B %d, %Y")
 } else {
-  format(countDate, "%B %d, %Y")
+  format(countDatequery, "%B %d, %Y")
 }
 
 reddCount <- if(reddCountquery == 901) {
