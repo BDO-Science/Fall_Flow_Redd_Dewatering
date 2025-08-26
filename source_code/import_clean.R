@@ -9,7 +9,6 @@ project <- here::here() #pointing to working directory
 wy <- 2025
 exp_fac <- 2.04
 yr <- year(Sys.Date())
-eosStorage <- 2413
 ##############################
 #Reading in shallow redd files
 ##############################
@@ -61,6 +60,13 @@ scen_descriptions <- read_excel(MaxScenFile,
   separate(1, into = c('Scenario', 'Description'), sep = ':') %>%
   filter(Scenario %in% scen_filter)
 
+eosStorage <- read_excel(MaxScenFile, 
+                         sheet = flowsheet, skip = 1, col_names = TRUE) %>%
+  filter(grepl('end of september', Date, ignore.case = TRUE)) %>%
+  pivot_longer(-Date, names_to = "column", values_to = "value") %>%
+  group_by() %>%
+  summarize(min(value, na.rm = TRUE)) %>%
+  pull()
 ###########################################
 #read in Redd Count data and date from 
 #most recent file with that info
@@ -146,4 +152,4 @@ forecast_90_flows <- read_csv(here::here(project, 'input_data/flow_scen/aug_90.c
   mutate(Date = mdy(date)) %>%
   select(3, 2) %>%
   filter(Date > max(kes_flow_bind$Date)) %>%
-  bind_rows(select(kes_flow_bind, Date, flow))
+  bind_rows(select(filter(rt_flows, location == 'KES'), -location, Date = date, flow))

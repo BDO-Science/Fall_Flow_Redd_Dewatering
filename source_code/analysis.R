@@ -181,7 +181,8 @@ avg_flow_sep_oct <- scens_with_rt_flows %>%
   filter(month %in% c(9,10)) %>%
   group_by(month) %>%
   summarize(across(-1,mean)) %>%
-  select(-1)
+  select(-1) %>%
+  mutate(across(everything(), ~ round(.x, 0)))
 
 sep_feb_volume <- scens_with_rt_flows %>%
   filter(Date > paste0(yr,'-08-31')) %>%
@@ -271,4 +272,22 @@ projected_90_cost <- (sum(forecast_90_flows$flow) * 1.983) / 1000
 eos_scen <- aug_sep_volume %>%
   pivot_longer(names_to = 'Scenario', values_to = 'Vol', 1:ncol(aug_sep_volume)) %>%
   mutate(eos = eosStorage - (Vol-projected_90_cost))
+eos_scen_filter <- eos_scen %>%
+  filter(eos <= 2200) %>%
+  pull(Scenario)
+eos_scen_paste <- paste(eos_scen_filter, collapse = ", ")
+roundeosStorage <- plyr::round_any(eosStorage, 100)/1000
+carryover_safe <- paste('All proposed scenarios are anticipated to have EOS storage greater than the 2,200 TAF threshold and therefore would not be',
+                        'expected to contribute to TDM impacts to winter-run chinook salmon in the subsequent year.',
+                        'Scenarios focused on avoiding dewatering of winter-run redds have higher releases',
+                        'through early November which is not factored into this performance indicator.')
+carryover_bad <- paste('scenarios',eos_scen_paste, 'are anticipated to have EOS storage less than the 2,200 TAF threshold and therefore may',
+                       'contribute to TDM impacts to winter-run chinook salmon in the subsequent year.',
+                       'Scenarios focused on avoiding dewatering of winter-run redds have higher releases',
+                       'through early November which is not factored into this performance indicator.')
 
+carryover_text <- if(length(eos_scen_filter) == 0) {
+  print(carryover_safe)
+} else {
+  print(carryover_bad)
+}
