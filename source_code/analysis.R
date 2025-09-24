@@ -147,7 +147,7 @@ redds_ok <- redds %>%
 
 redds_total <- nrow(redds)
 redds_dewatered <- nrow(subset(redds, grepl("dewater", status, ignore.case = TRUE)))
-redds_emerged <- nrow(subset(redds, redds$status == "EMERGED"))
+redds_emerged <- nrow(subset(redds, grepl("emerged", status, ignore.case = TRUE)))
 
 for(i in 1:nrow(redds_ok)) {
   temp <- filter(scens_with_rt_flows, Date <= redds$emergence_date[i] 
