@@ -276,7 +276,7 @@ eos_scen_filter <- eos_scen %>%
   filter(eos <= 2200) %>%
   pull(Scenario)
 eos_scen_paste <- paste(eos_scen_filter, collapse = ", ")
-roundeosStorage <- plyr::round_any(eosStorage, 100)/1000
+roundeosStorage <- round(eosStorage, 0)
 carryover_safe <- paste('All proposed scenarios are anticipated to have EOS storage greater than the 2,200 TAF threshold and therefore would not be',
                         'expected to contribute to TDM impacts to winter-run chinook salmon in the subsequent year.',
                         'Scenarios focused on avoiding dewatering of winter-run redds have higher releases',
