@@ -66,7 +66,7 @@ knitr::kable(all_dewater_table, align = "c")
 
 ### Carryover Effects to Next Year Winter-run Brood
 
-An analysis on the relationship between winter-run chinook salmon temperature dependent mortality relationship and Shasta Reservoir end-of-year storage suggests a threshold of 2,200 TAF end of September Shasta Storage to assess the impacts of TDM impacts on next year’s cohort. Next year’s cohort is expected to experience minimal TDM impacts when end of September Shasta Storage is greater than this threshold, while values lower than 2,200 TAF are correlated with potentially more negative TDM impacts. As of August, End of September Shasta Storage is expected to be approximately **`r roundeosStorage`**. `r carryover_text`
+An analysis on the relationship between winter-run chinook salmon temperature dependent mortality relationship and Shasta Reservoir end-of-year storage suggests a threshold of 2,200 TAF end of September Shasta Storage to assess the impacts of TDM impacts on next year’s cohort. Next year’s cohort is expected to experience minimal TDM impacts when end of September Shasta Storage is greater than this threshold, while values lower than 2,200 TAF are correlated with potentially more negative TDM impacts. As of August, End of September Shasta Storage is expected to be approximately **`r roundeosStorage`** MAF. `r carryover_text`
 
 ### Preliminary Predicted Results
 
