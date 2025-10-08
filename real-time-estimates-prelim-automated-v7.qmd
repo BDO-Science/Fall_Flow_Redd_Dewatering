@@ -4,7 +4,6 @@ format:
     toc: true
     standalone: false
     title-block-style: none
-    self-contained: true
   pdf: default
   docx: default
 engine: knitr
@@ -114,13 +113,7 @@ knitr::kable(summary_table_percent, align = alignments)
 #| fig-width: 9
 #| fig-height: 8
 
-if (knitr::is_html_output()) {
-  # Print interactive plot if html
-  redd_interactive
-} else {
-  # Print static plot for word and pdf
-  print(redd_graph)
-}
+redd_graph
 ```
 
 ```{r}
