@@ -4,6 +4,7 @@ format:
     toc: true
     standalone: false
     title-block-style: none
+    self-contained: true
   pdf: default
   docx: default
 engine: knitr
@@ -16,6 +17,7 @@ engine: knitr
 
 library(tidyverse)
 library(here)
+library(plotly)
 source("source_code/import_clean.R", echo = FALSE)
 source("source_code/analysis.R", echo = FALSE)
 ```
@@ -113,10 +115,10 @@ knitr::kable(summary_table_percent, align = alignments)
 #| fig-height: 8
 
 if (knitr::is_html_output()) {
-  # Print static ggplot for PDF
-  redd_interactive  # your ggplot object
+  # Print interactive plot if html
+  redd_interactive
 } else {
-  # Print interactive plotly for HTML
+  # Print static plot for word and pdf
   print(redd_graph)
 }
 ```
