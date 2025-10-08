@@ -102,6 +102,7 @@ alignments <- c('l', rep('c', table_n ))
 knitr::kable(summary_table_percent, align = alignments)
 ```
 
+### Shallow water redd graph
 ```{r}
 #| label: redd_igure
 #| results: asis
@@ -111,7 +112,13 @@ knitr::kable(summary_table_percent, align = alignments)
 #| fig-width: 9
 #| fig-height: 8
 
-redd_graph
+if (knitr::is_html_output()) {
+  # Print static ggplot for PDF
+  redd_interactive  # your ggplot object
+} else {
+  # Print interactive plotly for HTML
+  print(redd_graph)
+}
 ```
 
 ```{r}
