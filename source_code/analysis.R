@@ -165,8 +165,8 @@ redds2 <- bind_cols(redds_ok, wr_min_flow) %>%
          dewater_250_buffer = if_else(dewater_flow_250_buffer > min_flow, 1, 0))
 
 wr_dewater <- redds2 %>% group_by(Scenarios) %>%
-  summarize(dewater = sum(dewater) + redds_dewatered,
-            dewater_250_buffer = sum(dewater_250_buffer) + redds_dewatered) %>%
+  summarize(dewater = sum(dewater, na.rm = TRUE) + redds_dewatered,
+            dewater_250_buffer = sum(dewater_250_buffer, na.rm = TRUE) + redds_dewatered) %>%
   ungroup() %>%
   mutate(dewater_perc = round((dewater/reddCount)*100,1),
          dewater_perc_exp = round((dewater/(reddCount*exp_fac)*100),1),
