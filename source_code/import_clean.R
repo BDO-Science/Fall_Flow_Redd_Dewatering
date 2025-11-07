@@ -24,7 +24,7 @@ reddsheet <- tibble(sheet = excel_sheets(MaxReddFile)) %>%
 
 redds <- read_excel(MaxReddFile,  sheet = reddsheet, #read in shallow redd file and clean up.
                     range = cell_cols(c('A:I'))) %>% 
-  na.omit() %>% 
+  filter(!is.na(`Redd #`)) %>%
   select(redd_id = 2, date_established = 3,emergence_date = 4, status = 6, dewater_flow = 9) %>%
   mutate_at(2:3, as.Date) %>%#minor cleaning
   mutate(dewater_flow = as.numeric(str_extract(dewater_flow, "\\d+\\.*\\d*")))
