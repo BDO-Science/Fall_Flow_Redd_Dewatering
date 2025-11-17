@@ -224,7 +224,7 @@ summary_table_percent <- slice(summary_table, 6,7,9,10) %>%
 #dewatering graph
 ##########################
 ymin <- plyr::round_any(min(redds$dewater_flow), 1000, f = floor)
-ymax <- plyr::round_any(max(scens_with_rt_flows[2:3])+400, 500, f = ceiling)
+ymax <- plyr::round_any(max(scens_with_rt_flows[-1])+400, 500, f = ceiling)
 todays_date <- Sys.Date()
 mid <- as.Date(paste0(yr,'-08-01')) + floor((todays_date - as.Date(paste0(yr,'-08-01')))/2)
 
