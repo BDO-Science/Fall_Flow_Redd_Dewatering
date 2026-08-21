@@ -6,8 +6,8 @@ library(readxl)
 project <- here::here() #pointing to working directory
 
 #user defined values
-wy <- 2025
-exp_fac <- 2.04
+wy <- 2026
+exp_fac <- 1.3
 yr <- year(Sys.Date())
 ##############################
 #Reading in shallow redd files
