@@ -16,6 +16,7 @@ engine: knitr
 
 library(tidyverse)
 library(here)
+library(plotly)
 source("source_code/import_clean.R", echo = FALSE)
 source("source_code/analysis.R", echo = FALSE)
 ```
@@ -102,6 +103,7 @@ alignments <- c('l', rep('c', table_n ))
 knitr::kable(summary_table_percent, align = alignments)
 ```
 
+### Shallow water redd graph
 ```{r}
 #| label: redd_igure
 #| results: asis

@@ -2,6 +2,8 @@ library(tidyverse)
 library(here)
 library(patchwork)
 library(ggrepel)
+library(plotly)
+library(htmlwidgets)
 
 project <- here::here()
 
@@ -150,8 +152,8 @@ redds_dewatered <- nrow(subset(redds, grepl("dewater", status, ignore.case = TRU
 redds_emerged <- nrow(subset(redds, grepl("emerged", status, ignore.case = TRUE)))
 
 for(i in 1:nrow(redds_ok)) {
-  temp <- filter(scens_with_rt_flows, Date <= redds$emergence_date[i] 
-                 & Date >= redds$date_established[i]) %>%
+  temp <- filter(scens_with_rt_flows, Date <= redds_ok$emergence_date[i] 
+                 & Date >= redds_ok$date_established[i]) %>%
     summarize(across(-1, min))
   wr_min_flow <- bind_rows(wr_min_flow, temp)
 }
@@ -163,8 +165,8 @@ redds2 <- bind_cols(redds_ok, wr_min_flow) %>%
          dewater_250_buffer = if_else(dewater_flow_250_buffer > min_flow, 1, 0))
 
 wr_dewater <- redds2 %>% group_by(Scenarios) %>%
-  summarize(dewater = sum(dewater) + redds_dewatered,
-            dewater_250_buffer = sum(dewater_250_buffer) + redds_dewatered) %>%
+  summarize(dewater = sum(dewater, na.rm = TRUE) + redds_dewatered,
+            dewater_250_buffer = sum(dewater_250_buffer, na.rm = TRUE) + redds_dewatered) %>%
   ungroup() %>%
   mutate(dewater_perc = round((dewater/reddCount)*100,1),
          dewater_perc_exp = round((dewater/(reddCount*exp_fac)*100),1),
@@ -222,7 +224,7 @@ summary_table_percent <- slice(summary_table, 6,7,9,10) %>%
 #dewatering graph
 ##########################
 ymin <- plyr::round_any(min(redds$dewater_flow), 1000, f = floor)
-ymax <- plyr::round_any(max(scens_with_rt_flows[2:3])+400, 500, f = ceiling)
+ymax <- plyr::round_any(max(scens_with_rt_flows[-1])+400, 500, f = ceiling)
 todays_date <- Sys.Date()
 mid <- as.Date(paste0(yr,'-08-01')) + floor((todays_date - as.Date(paste0(yr,'-08-01')))/2)
 
@@ -240,13 +242,14 @@ flows <- scens_with_rt_flows %>%
   pivot_longer(names_to = 'Alts', values_to = 'Flow', -1) %>%
   filter(Date >= max(rt_flows$date))
 
-redd_graph <- ggplot() + geom_line(flows, mapping = aes(x = Date, y = Flow, color = Alts), linewidth = 0.75) +
+redd_graph <- ggplot() + 
+  geom_line(flows, mapping = aes(x = Date, y = Flow, color = Alts), linewidth = 0.75) +
   geom_line(rt_flows, mapping = aes(x = date, y = flow, linetype = location), linewidth = 0.75) +
   geom_point(redds_graph, mapping = aes(x = emergence_date, y = dewater_flow, fill = status), 
-             shape = 21, size = 6, color = 'black',
+             shape = 21, size = 6, color = 'black'
              ) +
-  geom_text(redds_graph, mapping = aes(x = emergence_date, y = dewater_flow, label = count),
-            color = 'black') +
+  geom_text(redds_graph, mapping = aes(x = emergence_date, y = dewater_flow, 
+                                       label = count, fill = status, text = count), color = 'black') +
   ylim(ymin, ymax+200) +
   xlim(min(as.Date(paste0(yr,'-08-01'))), (max(redds$emergence_date) + 5)) +
   labs(x = 'Date', y = 'Flow (cfs)', fill = 'Redd Status', linetype = '') +
@@ -258,11 +261,55 @@ redd_graph <- ggplot() + geom_line(flows, mapping = aes(x = Date, y = Flow, colo
         legend.title = element_text(size = 14),
         legend.key.size = unit(0.3, 'cm')) +
   scale_fill_manual(values = c(Re = 'lightgrey', Em = 'steelblue3', De = 'darkorange')) +
+  guides(fill = guide_legend(override.aes = list(shape = 21, color = 'black'))) +
   annotate(geom = 'rect', xmin = as.Date(paste0(yr,'-08-01')), xmax = max(rt_flows$date), 
            ymin = 3000, ymax = max(rt_flows$flow) + 100, fill = 'darkgrey', color = 'black', alpha = 0.2, linetype = 'dotted') +
   annotate(geom = 'text', x = (mid + 0.5), y = max(rt_flows$flow) + 350, size = 3.5, 
            fontface = 'italic', label = 'Actual Flows')
 redd_graph
+
+#interactive graph code (in progress)
+redd_graph2 <- ggplot() + 
+   annotate(geom = 'rect', xmin = as.Date(paste0(yr,'-08-01')), xmax = max(rt_flows$date), 
+            ymin = 3000, ymax = max(rt_flows$flow) + 100, fill = 'darkgrey', color = 'black', alpha = 0.2, linetype = 'dotted') +
+   geom_line(flows, mapping = aes(x = Date, y = Flow, color = Alts), linewidth = 0.75) +
+   geom_line(rt_flows, mapping = aes(x = date, y = flow, linetype = location), linewidth = 0.75) +
+   geom_point(redds_graph, mapping = aes(x = emergence_date, y = dewater_flow, fill = status), 
+              shape = 21, size = 6, color = 'black'
+   ) +
+   geom_text(redds_graph, mapping = aes(x = emergence_date, y = dewater_flow, 
+                                        label = count, fill = status), color = 'black') +
+   ylim(ymin, ymax+200) +
+   xlim(min(as.Date(paste0(yr,'-08-01'))), (max(redds$emergence_date) + 5)) +
+   labs(x = 'Date', y = 'Flow (cfs)', fill = 'Redd Status', linetype = '') +
+   theme_bw() +
+   theme(legend.position = 'bottom', 
+         legend.text = element_text(size = 12), 
+         axis.text = element_text(size = 10),
+         axis.title = element_text(size = 14),
+         legend.title = element_blank(),
+         legend.key.size = unit(0.3, 'cm')) +
+   scale_fill_manual(values = c(Re = 'lightgrey', Em = 'steelblue3', De = 'darkorange')) +
+   guides(fill = guide_legend(override.aes = list(shape = 21, color = 'black')),
+          linetype = FALSE) +
+   annotate(geom = 'text', x = (mid + 0.5), y = max(rt_flows$flow) + 350, size = 3.5, 
+            fontface = 'italic', label = 'Actual Flows')
+redd_graph2
+
+redd_interactive <- ggplotly(redd_graph2) %>% 
+   layout(legend = list(title = list(text = ""),
+                        orientation = "h",   # horizontal
+                        x = 0.5, y = -0.2,   # position
+                        xanchor = "center",
+                        yanchor = "top"))
+ 
+ for (i in 1:length(redd_interactive$x$data)) {
+   if (!is.null(redd_interactive$x$data[[i]]$name)) {
+     redd_interactive$x$data[[i]]$name <- gsub("\\(|\\)|,.*", "", redd_interactive$x$data[[i]]$name)
+   }
+ }
+ 
+redd_interactive
 
 ##########################
 #EOS analysis
