@@ -192,7 +192,7 @@ sep_feb_volume <- scens_with_rt_flows %>%
   mutate(across(everything(), ~ round(.x, 0)))
 
 aug_sep_volume <- scens_with_rt_flows %>%
-  filter(Date <= paste0(yr,'-09-30')) %>%
+  filter(Date <= paste0(yr,'-09-30') & Date >= paste0(yr,'-08-01')) %>%
   summarize(across(-1, ~ sum(.x) * 1.983 / 1000)) %>%
   mutate(across(everything(), ~ round(.x, 0)))
 
