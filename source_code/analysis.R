@@ -180,7 +180,7 @@ rownames(wr_dewater) <- NULL
 ##########################
 avg_flow_sep_oct <- scens_with_rt_flows %>%
   mutate(month = month(Date)) %>%
-  filter(month %in% c(9,10)) %>%
+  filter(month %in% c(9,10,11)) %>%
   group_by(month) %>%
   summarize(across(-1,mean)) %>%
   select(-1) %>%
@@ -196,28 +196,33 @@ aug_sep_volume <- scens_with_rt_flows %>%
   summarize(across(-1, ~ sum(.x) * 1.983 / 1000)) %>%
   mutate(across(everything(), ~ round(.x, 0)))
 
+sep_nov_volume <- scens_with_rt_flows %>%
+  filter(Date <= paste0(yr,'-11-30') & Date >= paste0(yr,'-09-01')) %>%
+  summarize(across(-1, ~ sum(.x) * 1.983 / 1000)) %>%
+  mutate(across(everything(), ~ round(.x, 0)))
+
 ##########################
 #creating summary table
 ##########################
 #create column of measures
-Metric <- data.frame(Measure = c("Avg Sept Flow (cfs)", "Avg Oct Flow (cfs)", 
-            "Sept-Feb Total Volume (TAF)", "Aug-Sept Total Volume (TAF)", "Winter-run Redds Dewatered", 
+Metric <- data.frame(Measure = c("Avg Sept Flow (cfs)", "Avg Oct Flow (cfs)", "Avg Nov Flow (cfs)", 
+            "Sept-Feb Total Volume (TAF)", "Aug-Sept Total Volume (TAF)", "Sept-Nov Total Volume (TAF)", "Winter-run Redds Dewatered", 
             "Winter-run % Lost (expansion factor = 1)", paste0("Winter-run % Lost (expansion factor = ",exp_fac,")"), 
             "Winter-run Redds Dewatered (250 cfs buffer)", "Winter-run % Lost (250 cfs buffer)",
             "Fall-run % Redds Dewatered"))
 
-summary_table <- bind_rows(avg_flow_sep_oct, sep_feb_volume, aug_sep_volume,
+summary_table <- bind_rows(avg_flow_sep_oct, sep_feb_volume, aug_sep_volume, sep_nov_volume,
                            wr_dewater, fall_dewater_for_table) %>%
   bind_cols(Metric) %>%
   select(ncol(.), 1:ncol(.))
 
-summary_table_flow <- slice(summary_table, 1:4) %>%
+summary_table_flow <- slice(summary_table, 1:6) %>%
   rename('Volume Measures' = 'Measure')
 
-summary_table_counts <- slice(summary_table, 5,8) %>%
+summary_table_counts <- slice(summary_table, 7,10) %>%
   rename('Dewatering Count Measures' = 'Measure')
 
-summary_table_percent <- slice(summary_table, 6,7,9,10) %>%
+summary_table_percent <- slice(summary_table, 8,9,11,12) %>%
   rename('Dewatering % Measures' = 'Measure')
 
 ##########################
@@ -338,3 +343,4 @@ carryover_text <- if(length(eos_scen_filter) == 0) {
 } else {
   print(carryover_bad)
 }
+
