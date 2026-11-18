@@ -106,6 +106,11 @@ updatedReddInfoDate <- read_excel(MaxReddFile,
                                                ignore.case = TRUE)) %>%
   summarize(max(measurement_date)) %>% pull()
 
+date_str <- str_extract(MaxReddFile, "\\d{4}-\\d{2}-\\d{2}")
+ifelse(updatedReddInfoDate >= as.Date(date_str), 
+       updatedReddInfoDate <- updatedReddInfoDate,
+       updatedReddInfoDate <- as.Date(date_str))
+
 #########################################
 #pull in flow data from kwk and kes
 #merge real-time flow data with scenarios
